@@ -1,0 +1,12 @@
+//settings
+@import 'settings/reset';
+@import 'settings/variables';
+@import 'settings/mixins';
+@import 'settings/global';
+//partials
+@import 'partials/1head';
+@import 'partials/2middle';
+@import 'partials/3footer';
+//responsive
+@import 'responsive/tablet';
+@import 'responsive/mobile';

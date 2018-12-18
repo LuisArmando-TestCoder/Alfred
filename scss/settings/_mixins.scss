@@ -1,0 +1,22 @@
+@mixin button($background: $button-default-color){
+    background: $background;
+    &:hover{
+        cursor: pointer;
+    }
+}
+
+@mixin thumbBar($w: 4px, $c1: #000, $c2: #333, $bg: transparent, $bdrs: 2px){
+    ::-webkit-scrollbar {
+        width: $w;
+    }
+    ::-webkit-scrollbar-track {
+        background: $bg; 
+    }
+    ::-webkit-scrollbar-thumb {
+        background: $c1; 
+        border-radius: $bdrs;
+        &:hover{
+            background: $c2;
+        }
+    }
+}

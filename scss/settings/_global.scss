@@ -1,0 +1,15 @@
+// 
+@include thumbBar();
+
+body {
+    color: #f0f0f0;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-family: sans-serif;
+    font-size: 60px;
+    letter-spacing: 10px;
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    text-shadow: 0 0 1vh #000;
+}
