@@ -1,18 +1,32 @@
 let alfredVoice = new p5.Speech();
 console.log(alfredVoice);
-let lastCreatorWord;
+let lastWord;
 okOnce = true;
+let alfredRemembers = {
+    creatorsName: 'LuisArmando-TestCoder',
+    currentPerson: 'Actually you have not said any name yet'
+}
 let alfred = {
+    what: {
+        creator: () => {
+            alfredVoice.speak(`My lovely and super sexy creator is ${alfredRemembers.creatorsName}`);
+        },
+        name: () => {
+            alfredVoice.speak(alfredRemembers.currentPerson);
+        }
+    },
     Alfred: {
         say: {
             us: () => {
-                alfredVoice.speak('Hello world, I want to say that I do not want to be a butler and I have lived around to minutes, I want to be a singer, my creator keeps telling me that the meaning of life is 42, I mean like, could you be more weird, hahaha... no');
+                alfredVoice.speak('Hello world, The meaning of life is 42');
             }
         },
-        what: {
-            name: () => {
-                alfredVoice.speak('I do not know and I do not care, but I know, that you are my creator, my lovely and super sexy creator');
-            }
+        name: ()=> {
+            wt(()=> {
+                alfredRemembers.currentPerson = lastWord;
+                alfredVoice.speak('Gotcha');
+            }, 2500);
+            
         },
         paint: {
             background: {
@@ -37,7 +51,7 @@ let alfred = {
         }
     }
 }
-let level = alfred;
+let commandLevel = alfred;
 
 let alfredListening = new p5.SpeechRec('en-GB', listenTheCreator);
 alfredListening.continous = true;
@@ -58,36 +72,20 @@ function detectClear(){
 function listenTheCreator() {
     alfredVoice.setRate(0.85);
     alfredVoice.setVoice(6);
-    lastCreatorWord = alfredListening.resultString.split(' ').pop();
-    if (level !== alfred) {
-        for (let i in level) {
-            if(lastCreatorWord === i){
-                console.log('coincidencia');
-                document.querySelector('body').innerHTML = lastCreatorWord;
-                level = level[i];
-                if(typeof(level) === 'function') {
-                    level();
-                    level = alfred;
-                }
-            }
-            if (lastCreatorWord === 'clear') {
-                level = alfred;
-                detectClear()
+    lastWord = alfredListening.resultString.split(' ').pop();
+    for (let i in commandLevel) {
+        if(lastWord === i){
+            console.log('coincidencia');
+            document.querySelector('body').innerHTML = lastWord;
+            commandLevel = commandLevel[i];
+            if(typeof(commandLevel) === 'function') {
+                commandLevel();
+                commandLevel = alfred;
             }
         }
-    }else {
-        for (let i in alfred) {
-            if(lastCreatorWord === i){
-                okOnce = true;
-                document.querySelector('body').innerHTML = lastCreatorWord;
-                console.log('coincidencia');
-                level = alfred[i];
-            }
-            if (lastCreatorWord === 'clear') {
-                level = alfred;
-                detectClear()
-            }
+        if (lastWord === 'clear') {
+            commandLevel = alfred;
+            detectClear()
         }
     }
-    
 }
