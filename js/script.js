@@ -125,7 +125,6 @@ wi(()=>{
 function detectClear(){
     if(okOnce) {
         alfredVoice.speak('Ok');
-        document.querySelector('body').innerHTML += 'Ok';
         okOnce = false;
     }
 }
@@ -137,7 +136,6 @@ function listenTheCreator() {
     for (let i in commandLevel) {
         if(lastWord === i){
             console.log('coincidencia');
-            document.querySelector('body').innerHTML += lastWord;
             document.querySelector('title').innerHTML = lastWord;
             commandLevel = commandLevel[i];
             if(typeof(commandLevel) === 'function') {
