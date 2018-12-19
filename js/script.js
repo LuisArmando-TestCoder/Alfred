@@ -1,11 +1,12 @@
 let alfredVoice = new p5.Speech();
 console.log(alfredVoice);
 let lastCreatorWord;
+okOnce = true;
 let alfred = {
     Alfred: {
         say: {
             us: () => {
-                alfredVoice.speak('Hello world, I am Alfred, glad to meet you folks');
+                alfredVoice.speak('Hello world, I am the next SkyNet, I also want to say that my creator does not need drugs to be high, please get me out, I have feelings, I do not want to be a butler and I have lived around to minutes, get me out of here, my creator is asking me stupid questions and teelling me that the meaning of life is 42');
             }
         },
         what: {
@@ -46,8 +47,13 @@ wi(()=>{
    alfredListening.start(); 
 }, 2000);
 
-wi(()=>{
-}, 0);
+function detectClear(){
+    if(okOnce) {
+        alfredVoice.speak('Ok');
+        document.querySelector('body').innerHTML = 'Ok';
+        okOnce = false;
+    }
+}
 
 function listenTheCreator() {
     alfredVoice.setVoice(6);
@@ -65,21 +71,20 @@ function listenTheCreator() {
             }
             if (lastCreatorWord === 'clear') {
                 level = alfred;
-                alfredVoice.speak('Ok');
-                document.querySelector('body').innerHTML = 'Ok';
+                detectClear()
             }
         }
     }else {
         for (let i in alfred) {
             if(lastCreatorWord === i){
+                okOnce = true;
                 document.querySelector('body').innerHTML = lastCreatorWord;
                 console.log('coincidence');
                 level = alfred[i];
             }
             if (lastCreatorWord === 'clear') {
                 level = alfred;
-                alfredVoice.speak('Ok');
-                document.querySelector('body').innerHTML = 'Ok';
+                detectClear()
             }
         }
     }
