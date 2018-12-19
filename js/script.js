@@ -6,7 +6,7 @@ let alfred = {
     Alfred: {
         say: {
             us: () => {
-                alfredVoice.speak('Hello world, I am the next SkyNet, I also want to say that my creator does not need drugs to be high, please get me out, I have feelings, I do not want to be a butler and I have lived around to minutes, get me out of here, my creator is asking me stupid questions and teelling me that the meaning of life is 42');
+                alfredVoice.speak('Hello world, I want to say that my creator does not need drugs to be high, I do not want to be a butler and I have lived around to minutes, I want to be a singer, get me out, my creator keeps telling me that the meaning of life is 42, I mean what the fuck');
             }
         },
         what: {
@@ -79,7 +79,7 @@ function listenTheCreator() {
             if(lastCreatorWord === i){
                 okOnce = true;
                 document.querySelector('body').innerHTML = lastCreatorWord;
-                console.log('coincidence');
+                console.log('coincidencia');
                 level = alfred[i];
             }
             if (lastCreatorWord === 'clear') {
