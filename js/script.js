@@ -7,7 +7,6 @@ if(!localStorage.getItem('currentPerson')){
 }
 let alfredRemembers = {
     creatorsName: 'LuisArmando-TestCoder',
-    currentPerson: localStorage.getItem('currentPerson'),
     musicList: [
         'https://www.youtube.com/watch?v=6tHrhzCIyHs&list=RD8mQJVlQ9j_8&index=15',
         'https://www.youtube.com/watch?v=dgCnYsDTiXU&list=RDdgCnYsDTiXU&start_radio=1',
@@ -26,9 +25,17 @@ let alfredRemembers = {
 }
 let alfred = {
     Alfred: {
-        entertainment: ()=> {
-            alfredVoice.speak('An entertainment list for you sir');
+        new: ()=> {
+            alfredVoice.speak('Sir, lets make a new project then');
+            window.open('https://github.com/new', '_blank');
+        },
+        fun: ()=> {
+            alfredVoice.speak('Have fun with your code sir');
             window.open(alfredRemembers.entertainmentList[r(0, alfredRemembers.entertainmentList.length - 1)], '_blank');
+        },
+        entertainment: ()=> {
+            alfredVoice.speak('Opening Netflix for you sir');
+            window.open('https://www.netflix.com/browse', '_blank');
         },
         music: ()=> {
             alfredVoice.speak('Here is music that you would like');
@@ -54,6 +61,14 @@ let alfred = {
             alfredVoice.speak('Opening a new pen sir');
             window.open('https://codepen.io/pen/', '_blank');
         },
+        regular: ()=> {
+            alfredVoice.speak('Lets make regular expressions then');
+            window.open('https://regex101.com/', '_blank');
+        },
+        editor: ()=> {
+            alfredVoice.speak('Well, the p5 editor is available sir');
+            window.open('https://editor.p5js.org/', '_blank');
+        },
         dashboard: ()=> {
             alfredVoice.speak('Here is your dashboard');
             window.open('https://codepen.io/LuisArmando-TC/', '_blank');
@@ -70,15 +85,9 @@ let alfred = {
             alfredVoice.speak('Your anime sir');
             window.open('https://animeflv.net/', '_blank');
         },
-        say: {
-            us: () => {
-                alfredVoice.speak('Ok, the meaning of life is 42');
-            },
-            glad: {
-                go: () => {
-                    alfredVoice.speak('Well, we have to go');
-                }
-            }
+        say: ()=> {
+            alfredVoice.speak('Yes sir, the meaning of life is 42');
+            
         },
         name: ()=> {
             wt(()=> {
@@ -103,7 +112,7 @@ let alfred = {
     },
     what: {
         name: () => {
-            alfredVoice.speak(alfredRemembers.currentPerson);
+            alfredVoice.speak(localStorage.getItem('currentPerson'));
         }
     },
     who: {
@@ -118,6 +127,7 @@ let alfredListening = new p5.SpeechRec('en-GB', listenTheCreator);
 alfredListening.continous = true;
 alfredListening.interimResults = true;
 
+alfredListening.start(); 
 wi(()=>{
    alfredListening.start(); 
 }, 4000);
