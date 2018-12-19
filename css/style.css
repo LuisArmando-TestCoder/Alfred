@@ -67,4 +67,11 @@ body {
   display: grid;
   place-items: center;
   min-height: 100vh;
-  text-shadow: 0 0 1vh #000; }
+  text-shadow: 0 0 1vh #000;
+  overflow: hidden;
+  background: #000; }
+
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0; }

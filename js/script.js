@@ -120,12 +120,12 @@ alfredListening.interimResults = true;
 
 wi(()=>{
    alfredListening.start(); 
-}, 2000);
+}, 4000);
 
 function detectClear(){
     if(okOnce) {
         alfredVoice.speak('Ok');
-        document.querySelector('body').innerHTML = 'Ok';
+        document.querySelector('body').innerHTML += 'Ok';
         okOnce = false;
     }
 }
@@ -137,7 +137,7 @@ function listenTheCreator() {
     for (let i in commandLevel) {
         if(lastWord === i){
             console.log('coincidencia');
-            document.querySelector('body').innerHTML = lastWord;
+            document.querySelector('body').innerHTML += lastWord;
             document.querySelector('title').innerHTML = lastWord;
             commandLevel = commandLevel[i];
             if(typeof(commandLevel) === 'function') {
