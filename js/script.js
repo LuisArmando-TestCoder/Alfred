@@ -16,10 +16,24 @@ let alfredRemembers = {
         'https://www.youtube.com/watch?v=m9kwUbDgpw0&list=PLg3KVtKsolJq3LpWuArrPPVjIwo2eo-zg&index=2',
         'https://www.youtube.com/watch?v=kwLTw8F8yN8&start_radio=1&list=RDkwLTw8F8yN8',
         'https://www.youtube.com/watch?v=6QvMcQ2Eejo&start_radio=1&list=RD6QvMcQ2Eejo'
+    ],
+    entertainmentList: [
+        'https://www.youtube.com/watch?v=nqiKWXUX-o8&list=PLRqwX-V7Uu6bPhi8sS1hHJ77n3zRO9FR_',
+        'https://www.youtube.com/watch?v=Pn1g1wjxl_0&list=PLRqwX-V7Uu6aFcVjlDAkkGIixw70s7jpW',
+        'https://www.youtube.com/watch?v=Qf4dIN99e2w&list=PLRqwX-V7Uu6bgPNQAdxQZpJuJCjeOr7VD',
+        'https://www.youtube.com/watch?v=zm9bqSSiIdo&list=PL7wAPgl1JVvUEb0dIygHzO4698tmcwLk9'
     ]
 }
 let alfred = {
     Alfred: {
+        entertainment: ()=> {
+            alfredVoice.speak('An entertainment list for you sir');
+            window.open(alfredRemembers.entertainmentList[r(0, alfredRemembers.entertainmentList.length - 1)], '_blank');
+        },
+        music: ()=> {
+            alfredVoice.speak('Here is music that you would like');
+            window.open(alfredRemembers.musicList[r(0, alfredRemembers.musicList.length - 1)], '_blank');
+        },
         space: ()=> {
             alfredVoice.speak('Going to the space sir');
             window.open('https://luisarmando-testcoder.github.io/Juego-de-Naves-Comando-en-Venus/', '_blank');
@@ -28,7 +42,7 @@ let alfred = {
             alfredVoice.speak('I am opening Github sir');
             window.open('https://github.com/LuisArmando-TestCoder?tab=repositories', '_blank');
         },
-        keep: ()=> {
+        storage: ()=> {
             alfredVoice.speak('Here is your storage sir');
             window.open('https://github.com/LuisArmando-TestCoder/keeper', '_blank');
         },
@@ -51,10 +65,6 @@ let alfred = {
         challenge: ()=> {
             alfredVoice.speak('Some challenges for you sir');
             window.open('https://courses.wesbos.com/account/access/5c18f4ef536bc562b0ef1ece', '_blank');
-        },
-        music: ()=> {
-            alfredVoice.speak('Here is music that you would like');
-            window.open(alfredRemembers.musicList[r(0, alfredRemembers.musicList.length - 1)], '_blank');
         },
         anime: ()=> {
             alfredVoice.speak('Your anime sir');
