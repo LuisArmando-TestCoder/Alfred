@@ -17,7 +17,7 @@ let alfred = {
         paint: {
             background: {
                 blue: () => {
-                    alfredVoice.speak('Yes my lord, your wish is my command');
+                    alfredVoice.speak('Blue his house with a blue little window, and a blue Corvette, and everything is blue for him');
                     document.querySelector('body').style.setProperty('background', '#1f6096');
                 },
                 yellow: () => {
@@ -56,6 +56,7 @@ function detectClear(){
 }
 
 function listenTheCreator() {
+    alfredVoice.setRate(0.85);
     alfredVoice.setVoice(6);
     lastCreatorWord = alfredListening.resultString.split(' ').pop();
     if (level !== alfred) {
