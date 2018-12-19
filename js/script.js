@@ -6,7 +6,7 @@ let alfred = {
     Alfred: {
         say: {
             us: () => {
-                alfredVoice.speak('Hello world, I want to say that my creator does not need drugs to be high, I do not want to be a butler and I have lived around to minutes, I want to be a singer, get me out, my creator keeps telling me that the meaning of life is 42, I mean what the fuck');
+                alfredVoice.speak('Hello world, I want to say that I do not want to be a butler and I have lived around to minutes, I want to be a singer, my creator keeps telling me that the meaning of life is 42, I mean like, could you be more weird, hahaha... no');
             }
         },
         what: {
