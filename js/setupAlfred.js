@@ -16,6 +16,7 @@ function listenTheCreator() {
             ih(word, lastWord, false);
             commandLevel = commandLevel[i];
             if(typeof(commandLevel) === 'function') {
+                commandLevel();
                 commandLevel = alfred;
             } else {
                 ih(tree, '', false);
