@@ -1,7 +1,7 @@
 const c = qs('canvas');
 const ctx = c.getContext('2d');
 let speed = 2;
-let letterSpacing = 40;
+let letterSpacing = 20;
 let count = 0, count2 = 0;
 
 let textArray = [
@@ -21,6 +21,35 @@ let textColors = [
   '#0D0208'
 ]
 
+let allTextColors = [
+  [
+    '#00FF41',
+    '#008F11',
+    '#003B00',
+    '#0D0208'
+  ],
+  [
+    '#00FFDF',
+    '#4CFFE8',
+    '#267F74',
+    '#0D0208'
+  ],
+  [
+    '#AF00FF',
+    '#C74CFF',
+    '#57007F',
+    '#0D0208'
+  ],
+]
+
+let colorIndex = 0;
+
+wi(()=> {
+  colorIndex++;
+  if(colorIndex > allTextColors.length - 1) colorIndex = 0;
+  textColors = allTextColors[colorIndex];
+}, 10000);
+
 let textCreatedArray = [];
 
 function manageSize(canvas) {
@@ -37,7 +66,7 @@ function createText() {
     letter: textArray[r(0, textArray.length - 1)],
     x: parseInt(r(0, c.width) / letterSpacing) * letterSpacing,
     y: -20,
-    color: '#00FF41'
+    color: textColors[0]
   }); // 00FF41 -> 008F11 -> 003B00 -> 0D0208
 }
 
@@ -46,7 +75,7 @@ function drawText() {
     ctx.fillText(i.letter, i.x, i.y += speed);
     ctx.font = `${letterSpacing}px Arial`;
     count++;
-    if(count === 21) {
+    if(count === 10) {
       count = 0;
       i.color = textColors[r(0, textColors.length - 1)];
     }
