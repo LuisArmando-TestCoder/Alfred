@@ -19,9 +19,9 @@ function listenTheCreator() {
                 commandLevel = alfred;
             } else {
                 ih(tree, '', false);
-                for (let i in commandLevel) {
+                for (let a in commandLevel) {
                     let li = ce('li');
-                    ih(li, i);
+                    ih(li, a);
                     tree.appendChild(li);
                 }
             }

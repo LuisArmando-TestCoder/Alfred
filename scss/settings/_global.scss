@@ -27,8 +27,13 @@ canvas {
     mix-blend-mode: difference;
 }
 
+ul {
+    max-width: 640px;
+}
+
 li {
-    font-size: 20px;
+    font-size: 16px;
+    color: #aaa;
     line-height: 2;
     display: inline-block;
 }
