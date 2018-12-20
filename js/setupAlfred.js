@@ -1,6 +1,6 @@
 function detectClear(){
     if(okOnce) {
-        alfredVoice.speak('Ok');
+        alfredVoice.speak('Command deleted');
         okOnce = false;
     }
 }
@@ -27,7 +27,7 @@ function listenTheCreator() {
                 }
             }
         }
-        if (lastWord === 'clear') {
+        if (lastWord === 'delete') {
             commandLevel = alfred;
             detectClear()
         }
