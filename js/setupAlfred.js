@@ -12,7 +12,6 @@ function listenTheCreator() {
     ih(lastWordElement, lastWord, false);
     for (let i in commandLevel) {
         if(lastWord === i){
-            console.log('coincidencia');
             document.querySelector('title').innerHTML = lastWord;
             ih(word, lastWord, false);
             commandLevel = commandLevel[i];

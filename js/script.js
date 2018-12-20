@@ -11,7 +11,8 @@ document.addEventListener('click', ()=> {
         ih(word, 'Call Alfred', false);
         alfredListening.start(); 
         wi(()=>{
-        alfredListening.start(); 
+            alfredListening.start(); 
+            console.clear();
         }, 4000);
         seeIfClick = true;
     }
