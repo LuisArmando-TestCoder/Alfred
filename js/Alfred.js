@@ -49,7 +49,7 @@ let alfred = {
                 alfredVoice.speak('Here is your dashboard');
                 window.open('https://codepen.io/LuisArmando-TC/', '_blank');
             },
-            inside: ()=> {
+            body: ()=> {
                 alfredVoice.speak('Here you can see inside my body sir');
                 window.open('https://github.com/LuisArmando-TestCoder/Alfred', '_blank');
             },
@@ -84,6 +84,10 @@ let alfred = {
             pink: () => {
                 alfredVoice.speak('Pink like Pepa Pink');
                 document.querySelector('body').style.setProperty('background', '#e33584');
+            },
+            black: () => {
+                alfredVoice.speak('Black like obsidiana');
+                document.querySelector('body').style.setProperty('background', '#000');
             } 
         },
         who: {
