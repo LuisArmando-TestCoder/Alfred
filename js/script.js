@@ -8,6 +8,7 @@ let seeIfClick = false;
 
 document.addEventListener('click', ()=> {
     if(!seeIfClick){
+        ih(word, 'Call Alfred', false);
         alfredListening.start(); 
         wi(()=>{
         alfredListening.start(); 

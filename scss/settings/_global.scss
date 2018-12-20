@@ -22,6 +22,7 @@ canvas {
 }
 
 #container {
+    user-select: none;
     padding: 0 15px;
     z-index: 1;
     mix-blend-mode: difference;
