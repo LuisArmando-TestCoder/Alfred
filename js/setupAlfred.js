@@ -12,6 +12,7 @@ function listenTheCreator() {
     ih(lastWordElement, lastWord, false);
     for (let i in commandLevel) {
         if(lastWord === i){
+            soundOfCoincidence.play();
             document.querySelector('title').innerHTML = lastWord;
             ih(word, lastWord, false);
             commandLevel = commandLevel[i];
@@ -54,9 +55,9 @@ let alfredRemembers = {
     musicList: [
         'https://www.youtube.com/watch?v=6tHrhzCIyHs&list=RD8mQJVlQ9j_8&index=15',
         'https://www.youtube.com/watch?v=dgCnYsDTiXU&list=RDdgCnYsDTiXU&start_radio=1',
-        'https://www.youtube.com/watch?v=pbMwTqkKSps&start_radio=1&list=RDEMcce0hP5SVByOVCd8UWUHEA',
-        'https://www.youtube.com/watch?v=1o84y-5-cO0&list=RDEM9zUDXjmy6kC3teLQBxY9Wg&start_radio=1',
-        'https://www.youtube.com/watch?v=m9kwUbDgpw0&list=PLg3KVtKsolJq3LpWuArrPPVjIwo2eo-zg&index=2',
+        'https://www.youtube.com/watch?v=9sjWU5dGcGI',
+        'https://www.youtube.com/watch?v=zA52uNzx7Y4&start_radio=1&list=RDzA52uNzx7Y4&t=3',
+        'https://www.youtube.com/watch?v=qeMFqkcPYcg&list=RDqeMFqkcPYcg&start_radio=1&t=2',
         'https://www.youtube.com/watch?v=kwLTw8F8yN8&start_radio=1&list=RDkwLTw8F8yN8',
         'https://www.youtube.com/watch?v=6QvMcQ2Eejo&start_radio=1&list=RD6QvMcQ2Eejo'
     ],
@@ -71,3 +72,5 @@ let alfredRemembers = {
 const word = gi('word');
 const tree = gi('tree');
 const lastWordElement = gi('lastWordElement');
+
+let soundOfCoincidence = new Audio('mp3/coincidence.mp3');
