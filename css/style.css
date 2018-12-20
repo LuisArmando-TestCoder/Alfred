@@ -93,3 +93,12 @@ li {
 
 li + li:before {
   content: ' / '; }
+
+#lastWordElement {
+  text-transform: none;
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  z-index: 1;
+  font-size: 14px;
+  color: #aaa; }

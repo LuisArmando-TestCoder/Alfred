@@ -76,15 +76,17 @@ let alfred = {
                 window.open('https://frontendmasters.com/courses/', '_blank');
             }
         },
-        life: ()=> {
-            alfredVoice.speak('42');
-            
-        },
-        name: ()=> {
-            wt(()=> {
-                localStorage.setItem('currentPerson', lastWord);
-                alfredVoice.speak('Gotcha');
-            }, 2500);
+        know: {
+            life: ()=> {
+                alfredVoice.speak('42');
+                
+            },
+            name: ()=> {
+                wt(()=> {
+                    localStorage.setItem('currentPerson', lastWord);
+                    alfredVoice.speak('Gotcha');
+                }, 2500);
+            }
         },
         paint: {
             blue: () => {
@@ -111,6 +113,6 @@ let alfred = {
             creator: () => {
                 alfredVoice.speak(`My lovely creator is ${alfredRemembers.creatorsName}`);
             }  
-        }
+        }  
     }
 }

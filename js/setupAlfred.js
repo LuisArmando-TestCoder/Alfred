@@ -9,6 +9,7 @@ function listenTheCreator() {
     alfredVoice.setRate(0.85);
     alfredVoice.setVoice(6);
     lastWord = alfredListening.resultString.split(' ').pop();
+    ih(lastWordElement, lastWord, false);
     for (let i in commandLevel) {
         if(lastWord === i){
             console.log('coincidencia');
@@ -21,16 +22,24 @@ function listenTheCreator() {
             } else {
                 ih(tree, '', false);
                 for (let a in commandLevel) {
-                    let li = ce('li');
-                    ih(li, a);
-                    tree.appendChild(li);
+                    showTreeInDom();
                 }
             }
         }
         if (lastWord === 'delete') {
             commandLevel = alfred;
+            showTreeInDom();
             detectClear()
         }
+    }
+}
+
+function showTreeInDom(){
+    ih(tree, '', false);
+    for (let a in commandLevel) {
+        let li = ce('li');
+        ih(li, a);
+        tree.appendChild(li);
     }
 }
 
@@ -61,3 +70,4 @@ let alfredRemembers = {
 
 const word = gi('word');
 const tree = gi('tree');
+const lastWordElement = gi('lastWordElement');
