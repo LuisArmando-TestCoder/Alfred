@@ -19,6 +19,7 @@ function listenTheCreator() {
             if(typeof(commandLevel) === 'function') {
                 commandLevel();
                 commandLevel = alfred;
+                showTreeInDom();
             } else {
                 ih(tree, '', false);
                 for (let a in commandLevel) {
