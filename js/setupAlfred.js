@@ -13,10 +13,17 @@ function listenTheCreator() {
         if(lastWord === i){
             console.log('coincidencia');
             document.querySelector('title').innerHTML = lastWord;
+            ih(word, lastWord, false);
             commandLevel = commandLevel[i];
             if(typeof(commandLevel) === 'function') {
-                commandLevel();
                 commandLevel = alfred;
+            } else {
+                ih(tree, '', false);
+                for (let i in commandLevel) {
+                    let li = ce('li');
+                    ih(li, i);
+                    tree.appendChild(li);
+                }
             }
         }
         if (lastWord === 'clear') {
@@ -50,3 +57,6 @@ let alfredRemembers = {
         'https://www.youtube.com/watch?v=zm9bqSSiIdo&list=PL7wAPgl1JVvUEb0dIygHzO4698tmcwLk9'
     ]
 }
+
+const word = gi('word');
+const tree = gi('tree');
