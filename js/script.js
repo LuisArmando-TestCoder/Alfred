@@ -25,7 +25,7 @@ let alfredRemembers = {
 }
 let alfred = {
     Alfred: {
-        new: ()=> {
+        project: ()=> {
             alfredVoice.speak('Sir, lets make a new project then');
             window.open('https://github.com/new', '_blank');
         },
@@ -85,8 +85,8 @@ let alfred = {
             alfredVoice.speak('Your anime sir');
             window.open('https://animeflv.net/', '_blank');
         },
-        say: ()=> {
-            alfredVoice.speak('Yes sir, the meaning of life is 42');
+        life: ()=> {
+            alfredVoice.speak('42');
             
         },
         name: ()=> {
@@ -108,18 +108,16 @@ let alfred = {
                 alfredVoice.speak('Pink like Pepa Pink');
                 document.querySelector('body').style.setProperty('background', '#e33584');
             } 
+        },
+        who: {
+            I: () => {
+                alfredVoice.speak(localStorage.getItem('currentPerson'));
+            },
+            creator: () => {
+                alfredVoice.speak(`My lovely creator is ${alfredRemembers.creatorsName}`);
+            }  
         }
-    },
-    what: {
-        name: () => {
-            alfredVoice.speak(localStorage.getItem('currentPerson'));
-        }
-    },
-    who: {
-        creator: () => {
-            alfredVoice.speak(`My lovely creator is ${alfredRemembers.creatorsName}`);
-        }
-    },
+    }
 }
 let commandLevel = alfred;
 

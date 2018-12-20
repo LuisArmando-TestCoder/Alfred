@@ -46,18 +46,18 @@ function drawText() {
     ctx.fillText(i.letter, i.x, i.y += speed);
     ctx.font = `${letterSpacing}px Arial`;
     count++;
-    if(count === 10) {
+    if(count === 21) {
       count = 0;
       i.color = textColors[r(0, textColors.length - 1)];
     }
     ctx.fillStyle = i.color;
-    if(i.y > c.width) {
+    if(i.y > c.height + letterSpacing) {
       textCreatedArray.splice(textCreatedArray.indexOf(i), 1);
     }
   }
 }
 
-function draw() {
+function drawer() {
   ctx.clearRect(0, 0, c.width, c.height);
   count2++;
   if (count2 === letterSpacing / 2) {
@@ -67,8 +67,8 @@ function draw() {
     }
   }
   drawText();
-  window.requestAnimationFrame(draw);
+  window.requestAnimationFrame(drawer);
 }
 
 manageSize(c);
-draw();
+drawer();
