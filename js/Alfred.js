@@ -110,7 +110,7 @@ let alfred = {
             definition: ()=> {
                 wt(()=> {
                     window.open(`https://www.wordreference.com/definition/${lastWord}`, '_blank');
-                    alfredVoice.speak('Here is the definition sir');
+                    alfredVoice.speak(`Here is the definition of ${lastWord}`);
                 }, 2000);
             },
             name: () => {
