@@ -1,7 +1,15 @@
 let alfred = {
     Alfred: {
-        want: {
-            see: {
+        want: {    
+            study: ()=> {
+                alfredVoice.speak('There is so much to study in frontend masters sir');
+                window.open('https://frontendmasters.com/courses/', '_blank');
+            },
+            music: ()=> {
+                alfredVoice.speak('Here is music that you would like');
+                window.open(alfredRemembers.musicList[r(0, alfredRemembers.musicList.length - 1)], '_blank');
+            },
+            look: {
                 board: ()=> {
                     alfredVoice.speak('Here you are sir, the trello boards');
                     window.open('https://trello.com/luisarmando34/boards', '_blank');
@@ -48,10 +56,6 @@ let alfred = {
                     alfredVoice.speak('Opening Netflix for you sir');
                     window.open('https://www.netflix.com/browse', '_blank');
                 },
-            study: ()=> {
-                alfredVoice.speak('There is so much to study in frontend masters sir');
-                window.open('https://frontendmasters.com/courses/', '_blank');
-            }
             },
             make: {
                 project: ()=> {
@@ -72,20 +76,16 @@ let alfred = {
                 }
             }
         },
-        music: ()=> {
-            alfredVoice.speak('Here is music that you would like');
-            window.open(alfredRemembers.musicList[r(0, alfredRemembers.musicList.length - 1)], '_blank');
+        life: ()=> {
+            alfredVoice.speak('42');
+            
         },
-        know: {
-            life: ()=> {
-                alfredVoice.speak('42');
-                
-            },
+        remember: {
             name: ()=> {
                 wt(()=> {
                     localStorage.setItem('currentPerson', lastWord);
-                    alfredVoice.speak('Gotcha');
-                }, 2500);
+                    alfredVoice.speak(`Hi ${localStorage.getItem('currentPerson')}, I am Alfred`);
+                }, 2000);
             }
         },
         paint: {
@@ -106,12 +106,23 @@ let alfred = {
                 document.querySelector('body').style.setProperty('background', '#000');
             } 
         },
-        who: {
-            I: () => {
-                alfredVoice.speak(localStorage.getItem('currentPerson'));
+        what: {
+            word: ()=> {
+                wt(()=> {
+                    window.open(`https://www.wordreference.com/definition/butler${lastWord}`, '_blank');
+                    alfredVoice.speak('Here is the definition sir');
+                }, 2000);
             },
+            name: () => {
+                alfredVoice.speak(`${localStorage.getItem('currentPerson')}`);
+            },
+        },
+        who: {
             creator: () => {
                 alfredVoice.speak(`My lovely creator is ${alfredRemembers.creatorsName}`);
+            },
+            you: () => {
+                alfredVoice.speak(`I am Alfred, a voice command line butler, happy to serve you`);
             }  
         }  
     }

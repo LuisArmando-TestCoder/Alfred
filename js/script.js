@@ -13,7 +13,7 @@ document.addEventListener('click', ()=> {
         wi(()=>{
             alfredListening.start(); 
             console.clear();
-        }, 4000);
+        }, 2000);
         seeIfClick = true;
     }
 });
