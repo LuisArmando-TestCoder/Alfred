@@ -107,7 +107,7 @@ let alfred = {
             } 
         },
         what: {
-            word: ()=> {
+            definition: ()=> {
                 wt(()=> {
                     window.open(`https://www.wordreference.com/definition/butler${lastWord}`, '_blank');
                     alfredVoice.speak('Here is the definition sir');
