@@ -16,7 +16,7 @@ let alfred = {
                 },
                 library: ()=> {
                     alfredVoice.speak('Of course, you are now in quicker JS');
-                    window.open('https://luisarmando-testcoder.github.io/QuickerJs/lib/quicker.js', '_blank');
+                    window.open('https://raw.githubusercontent.com/LuisArmando-TestCoder/QuickerJS2/master/quicker.js', '_blank');
                 },
                 space: ()=> {
                     alfredVoice.speak('Going to the space sir');
