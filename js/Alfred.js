@@ -9,6 +9,10 @@ let alfred = {
                 alfredVoice.speak('Here is music that you would like');
                 window.open(alfredRemembers.musicList[r(0, alfredRemembers.musicList.length - 1)], '_blank');
             },
+            message: ()=> {
+                alfredVoice.speak('What´s app is open sir');
+                window.open('https://web.whatsapp.com/', '_blank');
+            },
             look: {
                 board: ()=> {
                     alfredVoice.speak('Here you are sir, the trello boards');
