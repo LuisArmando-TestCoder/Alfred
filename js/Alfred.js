@@ -48,10 +48,10 @@ let alfred = {
                     alfredVoice.speak('Opening Netflix for you sir');
                     window.open('https://www.netflix.com/browse', '_blank');
                 },
-                music: ()=> {
-                    alfredVoice.speak('Here is music that you would like');
-                    window.open(alfredRemembers.musicList[r(0, alfredRemembers.musicList.length - 1)], '_blank');
-                }
+            study: ()=> {
+                alfredVoice.speak('There is so much to study in frontend masters sir');
+                window.open('https://frontendmasters.com/courses/', '_blank');
+            }
             },
             make: {
                 project: ()=> {
@@ -70,11 +70,11 @@ let alfred = {
                     alfredVoice.speak('Some challenges for you sir');
                     window.open('https://courses.wesbos.com/account/access/5c18f4ef536bc562b0ef1ece', '_blank');
                 }
-            },
-            study: ()=> {
-                alfredVoice.speak('There is so much to study in frontend masters sir');
-                window.open('https://frontendmasters.com/courses/', '_blank');
             }
+        },
+        music: ()=> {
+            alfredVoice.speak('Here is music that you would like');
+            window.open(alfredRemembers.musicList[r(0, alfredRemembers.musicList.length - 1)], '_blank');
         },
         know: {
             life: ()=> {
