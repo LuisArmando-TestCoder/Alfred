@@ -30,7 +30,7 @@ let alfred = {
                     alfredVoice.speak('Of course, you are now in quicker JS');
                     window.open('https://luisarmando-testcoder.github.io/QuickerJS2/quicker.js', '_blank');
                 },
-                space: ()=> {
+                space: ()=> { 
                     alfredVoice.speak('Going to the space sir');
                     window.open('https://luisarmando-testcoder.github.io/Juego-de-Naves-Comando-en-Venus/', '_blank');
                 },
