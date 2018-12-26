@@ -5,9 +5,23 @@ let alfred = {
                 alfredVoice.speak('There is so much to study in frontend masters sir');
                 window.open('https://frontendmasters.com/courses/', '_blank');
             },
-            music: ()=> {
-                alfredVoice.speak('Here is music that you would like');
-                window.open(alfredRemembers.musicList[r(0, alfredRemembers.musicList.length - 1)], '_blank');
+            hear: {
+                nice: ()=> {
+                    alfredVoice.speak('Then you say rice, then I say price, then I rap more, then you sing twice');
+                    window.open(alfredRemembers.niceMusicList[r(0, alfredRemembers.niceMusicList.length - 1)], '_blank');
+                },
+                powerful: ()=> {
+                    alfredVoice.speak('Let´s begin sir');
+                    window.open(alfredRemembers.powerMusicList[r(0, alfredRemembers.powerMusicList.length - 1)], '_blank');
+                },
+                funny: ()=> {
+                    alfredVoice.speak('Of course sir, enjoy');
+                    window.open(alfredRemembers.funMusicList[r(0, alfredRemembers.funMusicList.length - 1)], '_blank');
+                },
+                sad: ()=> {
+                    alfredVoice.speak('Your wish is my command');
+                    window.open(alfredRemembers.sadMusicList[r(0, alfredRemembers.sadMusicList.length - 1)], '_blank');
+                }
             },
             message: ()=> {
                 alfredVoice.speak('What´s app is open sir');

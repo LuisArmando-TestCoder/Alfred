@@ -52,21 +52,31 @@ if(!localStorage.getItem('currentPerson')){
 }
 let alfredRemembers = {
     creatorsName: 'LuisArmando-TestCoder',
-    musicList: [
-        'https://www.youtube.com/watch?v=6tHrhzCIyHs&list=RD8mQJVlQ9j_8&index=15',
+    niceMusicList: [
         'https://www.youtube.com/watch?v=dgCnYsDTiXU&list=RDdgCnYsDTiXU&start_radio=1',
+        'https://www.youtube.com/watch?v=kwLTw8F8yN8&start_radio=1&list=RDkwLTw8F8yN8'
+    ],
+    powerfulMusicList: [
+        'https://www.youtube.com/watch?v=6tHrhzCIyHs&list=RD8mQJVlQ9j_8&index=15',
         'https://www.youtube.com/watch?v=9sjWU5dGcGI',
-        'https://www.youtube.com/watch?v=zA52uNzx7Y4&start_radio=1&list=RDzA52uNzx7Y4&t=3',
-        'https://www.youtube.com/watch?v=qeMFqkcPYcg&list=RDqeMFqkcPYcg&start_radio=1&t=2',
-        'https://www.youtube.com/watch?v=kwLTw8F8yN8&start_radio=1&list=RDkwLTw8F8yN8',
-        'https://www.youtube.com/watch?v=6QvMcQ2Eejo&start_radio=1&list=RD6QvMcQ2Eejo'
+        'https://www.youtube.com/watch?v=6QvMcQ2Eejo&start_radio=1&list=RD6QvMcQ2Eejo',
+        'https://www.youtube.com/watch?v=zA52uNzx7Y4&start_radio=1&list=RDzA52uNzx7Y4',
+    ],
+    funMusicList: [
+        'https://www.youtube.com/watch?v=1o84y-5-cO0&list=RD1o84y-5-cO0&start_radio=1'
+    ],
+    sadMusicList: [
+        'https://www.youtube.com/watch?v=qeMFqkcPYcg&list=RDqeMFqkcPYcg&start_radio=1',
+        'https://www.youtube.com/watch?v=IKmPci5VXz0&list=RDIKmPci5VXz0&start_radio=1',
+        'https://www.youtube.com/watch?v=6W4L2O-JQ-w&list=RD6W4L2O-JQ-w&start_radio=1',
+        'https://www.youtube.com/watch?v=sBzrzS1Ag_g&list=RDa5uQMwRMHcs&index=3&t=77'
     ],
     entertainmentList: [
         'https://www.youtube.com/watch?v=nqiKWXUX-o8&list=PLRqwX-V7Uu6bPhi8sS1hHJ77n3zRO9FR_',
         'https://www.youtube.com/watch?v=Pn1g1wjxl_0&list=PLRqwX-V7Uu6aFcVjlDAkkGIixw70s7jpW',
         'https://www.youtube.com/watch?v=Qf4dIN99e2w&list=PLRqwX-V7Uu6bgPNQAdxQZpJuJCjeOr7VD',
         'https://www.youtube.com/watch?v=zm9bqSSiIdo&list=PL7wAPgl1JVvUEb0dIygHzO4698tmcwLk9',
-        'https://www.youtube.com/watch?v=17WoOqgXsRM&index=2&list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH&t=0s'
+        'https://www.youtube.com/watch?v=17WoOqgXsRM&index=2&list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH'
     ]
 }
 
