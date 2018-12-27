@@ -12,7 +12,7 @@ let alfred = {
                 },
                 powerful: ()=> {
                     alfredVoice.speak('Let´s begin sir');
-                    window.open(alfredRemembers.powerMusicList[r(0, alfredRemembers.powerMusicList.length - 1)], '_blank');
+                    window.open(alfredRemembers.powerfulMusicList[r(0, alfredRemembers.powerfulMusicList.length - 1)], '_blank');
                 },
                 funny: ()=> {
                     alfredVoice.speak('Of course sir, enjoy');

@@ -63,10 +63,10 @@ let alfredRemembers = {
         'https://www.youtube.com/watch?v=zA52uNzx7Y4&start_radio=1&list=RDzA52uNzx7Y4',
     ],
     funMusicList: [
-        'https://www.youtube.com/watch?v=1o84y-5-cO0&list=RD1o84y-5-cO0&start_radio=1'
+        'https://www.youtube.com/watch?v=qeMFqkcPYcg&list=RDqeMFqkcPYcg&start_radio=1',
     ],
     sadMusicList: [
-        'https://www.youtube.com/watch?v=qeMFqkcPYcg&list=RDqeMFqkcPYcg&start_radio=1',
+        'https://www.youtube.com/watch?v=1o84y-5-cO0&list=RD1o84y-5-cO0&start_radio=1',
         'https://www.youtube.com/watch?v=IKmPci5VXz0&list=RDIKmPci5VXz0&start_radio=1',
         'https://www.youtube.com/watch?v=6W4L2O-JQ-w&list=RD6W4L2O-JQ-w&start_radio=1',
         'https://www.youtube.com/watch?v=sBzrzS1Ag_g&list=RDa5uQMwRMHcs&index=3&t=77'
