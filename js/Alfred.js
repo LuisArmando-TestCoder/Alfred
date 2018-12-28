@@ -5,7 +5,7 @@ let alfred = {
                 alfredVoice.speak('There is so much to study in frontend masters sir');
                 window.open('https://frontendmasters.com/courses/', '_blank');
             },
-            hear: {
+            listen: {
                 nice: ()=> {
                     alfredVoice.speak('Then you say rice, then I say price, then I rap more, then you sing twice');
                     window.open(alfredRemembers.niceMusicList[r(0, alfredRemembers.niceMusicList.length - 1)], '_blank');
