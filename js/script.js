@@ -10,9 +10,9 @@ document.addEventListener('click', ()=> {
     if(!seeIfClick){
         ih(word, 'Call Alfred', false);
         alfredListening.start(); 
-        wi(()=>{
+        wi(()=>{ // Restart the speech
             alfredListening.start(); 
-            console.clear();
+            //console.clear();
         }, 2000);
         seeIfClick = true;
     }

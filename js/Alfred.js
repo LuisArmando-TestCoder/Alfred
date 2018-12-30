@@ -82,7 +82,9 @@ let alfred = {
                 },
                 experiment: ()=> {
                     alfredVoice.speak('Opening a new pen sir');
+                    window.open(alfredRemembers.powerfulMusicList[r(0, alfredRemembers.powerfulMusicList.length - 1)], '_blank');
                     window.open('https://codepen.io/pen/', '_blank');
+                    window.open('https://luisarmando-testcoder.github.io/QuickerJS2/quicker.js', '_blank');
                 },
                 regular: ()=> {
                     alfredVoice.speak('Lets make regular expressions then');
