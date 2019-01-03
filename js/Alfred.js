@@ -1,6 +1,10 @@
 let alfred = {
     Alfred: {
         want: {    
+            talk: ()=> {
+                alfredVoice.speak('Of course sir, let me take yopu to slack');
+                window.open('https://ml-hispano.slack.com/messages/DF6NU3Q5U/convo/CF4GPBVT4-1546467816.119500/', '_blank');
+            },
             study: ()=> {
                 alfredVoice.speak('There is so much to study in frontend masters sir');
                 window.open('https://frontendmasters.com/courses/', '_blank');
