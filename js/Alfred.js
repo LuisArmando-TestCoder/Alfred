@@ -1,5 +1,25 @@
 let alfred = {
     Alfred: {
+        nice: ()=> {
+            alfredVoice.speak('Then you say rice, then I say price, then I rap more, then you sing twice');
+            window.open(alfredRemembers.niceMusicList[r(0, alfredRemembers.niceMusicList.length - 1)], '_blank');
+        },
+        powerful: ()=> {
+            alfredVoice.speak('Let´s begin sir');
+            window.open(alfredRemembers.powerfulMusicList[r(0, alfredRemembers.powerfulMusicList.length - 1)], '_blank');
+        },
+        funny: ()=> {
+            alfredVoice.speak('Of course sir, enjoy');
+            window.open(alfredRemembers.funMusicList[r(0, alfredRemembers.funMusicList.length - 1)], '_blank');
+        },
+        sad: ()=> {
+            alfredVoice.speak('Your wish is my command');
+            window.open(alfredRemembers.sadMusicList[r(0, alfredRemembers.sadMusicList.length - 1)], '_blank');
+        },
+        awesome: ()=> {
+            alfredVoice.speak('Happy journey to the zone... sir');
+            window.open('https://www.youtube.com/watch?v=0t2tjNqGyJI&start_radio=1&list=RD0t2tjNqGyJI', '_blank');
+        },
         want: {    
             talk: ()=> {
                 alfredVoice.speak('Of course sir, let me take you to slack');
@@ -8,24 +28,6 @@ let alfred = {
             study: ()=> {
                 alfredVoice.speak('There is so much to study in frontend masters sir');
                 window.open('https://frontendmasters.com/courses/', '_blank');
-            },
-            listen: {
-                nice: ()=> {
-                    alfredVoice.speak('Then you say rice, then I say price, then I rap more, then you sing twice');
-                    window.open(alfredRemembers.niceMusicList[r(0, alfredRemembers.niceMusicList.length - 1)], '_blank');
-                },
-                powerful: ()=> {
-                    alfredVoice.speak('Let´s begin sir');
-                    window.open(alfredRemembers.powerfulMusicList[r(0, alfredRemembers.powerfulMusicList.length - 1)], '_blank');
-                },
-                funny: ()=> {
-                    alfredVoice.speak('Of course sir, enjoy');
-                    window.open(alfredRemembers.funMusicList[r(0, alfredRemembers.funMusicList.length - 1)], '_blank');
-                },
-                sad: ()=> {
-                    alfredVoice.speak('Your wish is my command');
-                    window.open(alfredRemembers.sadMusicList[r(0, alfredRemembers.sadMusicList.length - 1)], '_blank');
-                }
             },
             message: ()=> {
                 alfredVoice.speak('What´s app is open sir');
@@ -137,9 +139,16 @@ let alfred = {
                     alfredVoice.speak(`Here is the definition of ${lastWord}`);
                 }, 2000);
             },
-            name: () => {
-                alfredVoice.speak(`${localStorage.getItem('currentPerson')}`);
+            your: {
+                name: () => {
+                    alfredVoice.speak(`Alfred of course`);
+                }
             },
+            my: {
+                name: () => {
+                    alfredVoice.speak(`${localStorage.getItem('currentPerson')}`);
+                }
+            }
         },
         who: {
             creator: () => {
