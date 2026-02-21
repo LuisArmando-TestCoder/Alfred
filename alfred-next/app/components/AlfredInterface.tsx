@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-type ProcessingState = 'idle' | 'listening' | 'processing' | 'speaking' | 'paused';
+type ProcessingState = 'idle' | 'listening' | 'processing' | 'pondering' | 'speaking' | 'paused';
 
 export default function AlfredInterface() {
   const [lastWordDisplay, setLastWordDisplay] = useState('');
@@ -33,6 +33,11 @@ export default function AlfredInterface() {
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const isConversationDoneRef = useRef(true);
   const isSpeechDoneRef = useRef(true);
+
+  const updateProcessingState = (state: ProcessingState) => {
+    setProcessingState(state);
+    processingStateRef.current = state;
+  };
 
   const fetchCommand = async (endpoint: string) => {
       try {
@@ -80,9 +85,15 @@ export default function AlfredInterface() {
     'paint black': { action: () => fetchCommand('paint/black') },
   };
 
-  const updateProcessingState = (state: ProcessingState) => {
-    setProcessingState(state);
-    processingStateRef.current = state;
+  const startListening = () => {
+    shouldListenRef.current = true;
+    updateProcessingState('listening');
+    setStatusMessage("Listening...");
+    transcriptBufferRef.current = '';
+    accumulatedTranscriptRef.current = '';
+    if (recognitionRef.current && !isRecognitionRunningRef.current) {
+        try { recognitionRef.current.start(); } catch(e) {}
+    }
   };
 
   const checkRestartListening = () => {
@@ -212,9 +223,40 @@ export default function AlfredInterface() {
     }
   };
 
+  const runPonderingAgent = async (prompt: string) => {
+    try {
+      const res = await fetch('http://192.168.100.35:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "phi3",
+          prompt: `Determine if the following message requires deep philosophical thought, complex reasoning, or emotional reflection. 
+          Message: "${prompt}"
+          Answer ONLY "YES" or "NO".`,
+          stream: false,
+          options: { temperature: 0 }
+        })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return json.response.trim().toUpperCase().includes('YES');
+      }
+    } catch (e) {
+      console.error("Pondering agent failed", e);
+    }
+    return false;
+  };
+
   const runConversationAgent = async (prompt: string, mdContext: string) => {
     updateProcessingState('processing');
     isConversationDoneRef.current = false;
+
+    const needsPondering = await runPonderingAgent(prompt);
+    if (needsPondering) {
+      updateProcessingState('pondering');
+      await new Promise(resolve => setTimeout(resolve, 2500));
+    }
+
     try {
       const fullPrompt = `
         <|system|>
@@ -351,7 +393,7 @@ export default function AlfredInterface() {
         }
         const command = commands[matchedKey];
         const msg = await command.action();
-        if (msg) speak(msg);
+        // if (msg) speak(msg);
       }
     } catch (err) {
       console.error("Command Agent failed", err);
@@ -383,17 +425,6 @@ export default function AlfredInterface() {
     runCommandAgent(fullText, currentContext);
     runContextManager(fullText, currentContext);
     runConversationAgent(fullText, currentContext);
-  };
-
-  const startListening = () => {
-      shouldListenRef.current = true;
-      updateProcessingState('listening');
-      setStatusMessage("Listening...");
-      transcriptBufferRef.current = '';
-      accumulatedTranscriptRef.current = '';
-      if (recognitionRef.current && !isRecognitionRunningRef.current) {
-          try { recognitionRef.current.start(); } catch(e) {}
-      }
   };
 
   useEffect(() => {
@@ -501,6 +532,7 @@ export default function AlfredInterface() {
       switch(processingState) {
           case 'listening': return 'text-green-500';
           case 'processing': return 'text-blue-500';
+          case 'pondering': return 'text-orange-500';
           case 'speaking': return 'text-purple-500';
           case 'paused': return 'text-yellow-500';
           default: return 'text-gray-500';
