@@ -8,7 +8,12 @@ declare global {
 }
 
 export interface CommandAction {
-  action: () => Promise<string>;
+  action: (...args: any[]) => Promise<string>;
 }
 
 export type CommandsRecord = Record<string, CommandAction>;
+
+export interface CommandMatch {
+  command: string;
+  args: any[];
+}

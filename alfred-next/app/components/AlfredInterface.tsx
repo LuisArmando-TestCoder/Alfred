@@ -75,12 +75,14 @@ export default function AlfredInterface() {
     });
 
     await Promise.all([
-      runCommandAgent(fullText, currentContext, commands, async (matchedKey) => {
-        setCurrentWord(matchedKey);
-        if (soundOfCoincidenceRef.current) {
-          soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
+      runCommandAgent(fullText, currentContext, commands, async ({ command, args }) => {
+        if (commands[command]) {
+          setCurrentWord(command);
+          if (soundOfCoincidenceRef.current) {
+            soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
+          }
+          await commands[command].action(...args);
         }
-        await commands[matchedKey].action();
       }),
       runContextManager(fullText, currentContext)
     ]);

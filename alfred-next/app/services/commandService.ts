@@ -23,27 +23,21 @@ export const fetchCommand = async (endpoint: string) => {
 };
 
 export const commands: CommandsRecord = {
-  'play nice music': { action: () => fetchCommand('music/nice') },
-  'play powerful music': { action: () => fetchCommand('music/powerful') },
-  'play funny music': { action: () => fetchCommand('music/funny') },
-  'play sad music': { action: () => fetchCommand('music/sad') },
-  'play awesome music': { action: () => fetchCommand('music/awesome') },
-  'open frontend masters': { action: () => fetchCommand('link/study') },
-  'open trello': { action: () => fetchCommand('link/board') },
-  'open github': { action: () => fetchCommand('link/work') },
-  'open storage': { action: () => fetchCommand('link/storage') },
-  'open quickerjs': { action: () => fetchCommand('link/library') },
-  'open space game': { action: () => fetchCommand('link/space') },
-  'open p5 editor': { action: () => fetchCommand('link/editor') },
-  'open dashboard': { action: () => fetchCommand('link/dashboard') },
-  'open source code': { action: () => fetchCommand('link/body') },
-  'open anime': { action: () => fetchCommand('link/anime') },
-  'open netflix': { action: () => fetchCommand('link/entertainment') },
-  'start new project': { action: () => fetchCommand('link/project') },
-  'open regex101': { action: () => fetchCommand('link/regular') },
-  'open challenges': { action: () => fetchCommand('link/challenge') },
-  'paint blue': { action: () => fetchCommand('paint/blue') },
-  'paint yellow': { action: () => fetchCommand('paint/yellow') },
-  'paint pink': { action: () => fetchCommand('paint/pink') },
-  'paint black': { action: () => fetchCommand('paint/black') },
+  'play_music': { 
+    action: async (mood: string) => {
+      const validMoods = ['nice', 'powerful', 'funny', 'sad', 'awesome'];
+      const targetMood = validMoods.includes(mood) ? mood : 'nice';
+      return await fetchCommand(`music/${targetMood}`);
+    }
+  },
+  'open_link': { 
+    action: async (site: string) => {
+      return await fetchCommand(`link/${site}`);
+    }
+  },
+  'paint': { 
+    action: async (color: string) => {
+      return await fetchCommand(`paint/${color}`);
+    }
+  }
 };

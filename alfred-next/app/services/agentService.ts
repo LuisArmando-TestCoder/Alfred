@@ -1,3 +1,5 @@
+import { CommandsRecord } from "../types/alfred";
+
 export const runPonderingAgent = async (prompt: string) => {
   try {
     const res = await fetch('http://192.168.100.35:11434/api/generate', {
@@ -83,24 +85,46 @@ export const runContextManager = async (prompt: string, currentContext: string) 
   }
 };
 
-export const runCommandAgent = async (prompt: string, context: string, commands: Record<string, any>, onCommandMatched: (key: string) => void) => {
+export const runCommandAgent = async (
+  prompt: string, 
+  context: string, 
+  commands: CommandsRecord, 
+  onCommandMatched: (match: { command: string, args: any[] }) => void
+) => {
   try {
     const commandList = Object.keys(commands);
     const cmdPrompt = `
-      You are a command parser.
+      You are a Command Agent. Your job is to analyze the user message and context to decide if a command should be executed.
+      
       Context:
       ${context}
+      
       User said: "${prompt}"
-      Available commands:
-      ${commandList.join('\n')}
+      
+      Available Commands and valid arguments:
+      - play_music(mood): mood can be "nice", "powerful", "funny", "sad", "awesome".
+      - open_link(site): site can be "study", "board", "work", "storage", "library", "space", "editor", "dashboard", "body", "anime", "entertainment", "project", "regular", "challenge".
+      - paint(color): color can be "blue", "yellow", "pink", "black".
       
       Instructions:
-      1. Decide which command to trigger from the list.
-      2. If the user message does NOT explicitly ask for one of the available commands, you MUST output ONLY dots: .......
-      3. A command is only explicitly asked for if the user uses a clear verb at the beginning (e.g., "Play...", "Open...", "Paint...").
-      4. Do NOT explain your choice. Do NOT talk.
-      5. If a command matches, return its exact name from the list.
-      6. If NO command is requested, output ONLY dots: .......
+      1. If a command is requested, output EXACTLY this format:
+         >> execute:commandName("arg1", "arg2", ...) >>
+      2. If no command is requested, output ONLY dots: .......
+      3. Use the most appropriate command based on the user's intent.
+      4. Arguments MUST be quoted if they are strings.
+      
+      Example:
+      User: "Put some happy music"
+      Output: >> execute:play_music("happy") >>
+      
+      User: "I want to see my github"
+      Output: >> execute:open_link("work") >>
+      
+      User: "Make the screen blue"
+      Output: >> execute:paint("blue") >>
+
+      User: "Hello Alfred"
+      Output: .......
       `;
 
     const res = await fetch('http://192.168.100.35:11434/api/generate', {
@@ -118,13 +142,25 @@ export const runCommandAgent = async (prompt: string, context: string, commands:
     const json = await res.json();
     const response = json.response.trim();
     
-    if (response.includes('..')) {
-      return;
-    }
+    console.log("Command Agent raw response:", response);
 
-    const matchedKey = commandList.find(key => response.includes(key));
-    if (matchedKey) {
-      onCommandMatched(matchedKey);
+    const match = response.match(/>>\s*execute:(\w+)\((.*)\)\s*>>/);
+    if (match) {
+      const command = match[1];
+      const argsString = match[2];
+      
+      // Basic argument parsing (splitting by comma and removing quotes)
+      const args = argsString.split(',')
+        .map((arg: string) => arg.trim())
+        .filter((arg: string) => arg.length > 0)
+        .map((arg: string) => {
+          if (arg.startsWith('"') && arg.endsWith('"')) return arg.slice(1, -1);
+          if (arg.startsWith("'") && arg.endsWith("'")) return arg.slice(1, -1);
+          if (!isNaN(Number(arg))) return Number(arg);
+          return arg;
+        });
+
+      onCommandMatched({ command, args });
     }
   } catch (err) {
     console.error("Command Agent failed", err);
