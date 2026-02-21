@@ -14,14 +14,11 @@ type ProcessingState = 'idle' | 'listening' | 'processing' | 'speaking';
 export default function AlfredInterface() {
   const [lastWordDisplay, setLastWordDisplay] = useState('Click first');
   const [currentWord, setCurrentWord] = useState('Click first');
-  const [treeItems, setTreeItems] = useState<string[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [processingState, setProcessingState] = useState<ProcessingState>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   
   const recognitionRef = useRef<any>(null);
-  const commandLevelRef = useRef<any>(null);
-  const rootCommandRef = useRef<any>(null);
   const soundOfCoincidenceRef = useRef<HTMLAudioElement | null>(null);
   
   const shouldListenRef = useRef(false);
@@ -51,6 +48,43 @@ export default function AlfredInterface() {
           console.error("Fetch command failed", err);
           return "I could not reach the knowledge base.";
       }
+  };
+
+  const commands: Record<string, { action: () => Promise<any> }> = {
+    'play nice music': { action: () => fetchCommand('music/nice') },
+    'play powerful music': { action: () => fetchCommand('music/powerful') },
+    'play funny music': { action: () => fetchCommand('music/funny') },
+    'play sad music': { action: () => fetchCommand('music/sad') },
+    'play awesome music': { action: () => fetchCommand('music/awesome') },
+    'open slack': { action: () => fetchCommand('link/talk') },
+    'open frontend masters': { action: () => fetchCommand('link/study') },
+    'open whatsapp': { action: () => fetchCommand('link/message') },
+    'open trello': { action: () => fetchCommand('link/board') },
+    'open github': { action: () => fetchCommand('link/work') },
+    'open storage': { action: () => fetchCommand('link/storage') },
+    'open quickerjs': { action: () => fetchCommand('link/library') },
+    'open space game': { action: () => fetchCommand('link/space') },
+    'open p5 editor': { action: () => fetchCommand('link/editor') },
+    'open dashboard': { action: () => fetchCommand('link/dashboard') },
+    'open source code': { action: () => fetchCommand('link/body') },
+    'open anime': { action: () => fetchCommand('link/anime') },
+    'open netflix': { action: () => fetchCommand('link/entertainment') },
+    'start new project': { action: () => fetchCommand('link/project') },
+    'open regex101': { action: () => fetchCommand('link/regular') },
+    'open challenges': { action: () => fetchCommand('link/challenge') },
+    'life definition': { action: () => fetchCommand('info/life') },
+    'define word': { action: () => fetchCommand('info/definition') },
+    'who are you': { action: () => fetchCommand('info/identity') },
+    'who is your creator': { action: () => fetchCommand('info/creator') },
+    'paint blue': { action: () => fetchCommand('paint/blue') },
+    'paint yellow': { action: () => fetchCommand('paint/yellow') },
+    'paint pink': { action: () => fetchCommand('paint/pink') },
+    'paint black': { action: () => fetchCommand('paint/black') },
+    'remember name': { action: () => Promise.resolve("Remembered Name") },
+    'what is my name': { action: () => {
+         const person = localStorage.getItem('currentPerson') || 'friend';
+         return Promise.resolve(`Your name is ${person}`);
+    } }
   };
 
   const speak = (text: string) => {
@@ -88,12 +122,56 @@ export default function AlfredInterface() {
     }
   };
 
+  const speakChunk = (text: string, isFinal: boolean = false) => {
+      if ('speechSynthesis' in window) {
+          // If text is empty and not final, do nothing
+          if (!text && !isFinal) return;
+          
+          // If text is empty but final, use a space to trigger onend
+          const textToSpeak = text || " ";
+
+          const utterance = new SpeechSynthesisUtterance(textToSpeak);
+          let voices = voicesRef.current;
+          if (voices.length === 0) {
+              voices = window.speechSynthesis.getVoices();
+              voicesRef.current = voices;
+          }
+          const voice = voices.find(v => v.name === 'Google UK English Male') || voices[0];
+          if (voice) utterance.voice = voice;
+          utterance.rate = 0.8; 
+          utterance.pitch = 0.8; 
+
+          if (isFinal) {
+              utterance.onend = () => {
+                  // Only restart listening if we are done with all chunks (queue empty)
+                  if (!window.speechSynthesis.pending) {
+                      startListening();
+                  }
+              };
+          }
+
+          window.speechSynthesis.speak(utterance);
+      }
+  };
+
   const askOllama = async (prompt: string, actionResult: string | null, availableCommands: string[]) => {
     setProcessingState('processing');
     try {
-        const systemContext = `Context:\n- Action Taken: ${actionResult || 'None'}\n- Commands: ${availableCommands.join(', ')}`;
-        const fullPrompt = `User said: "${prompt}"\n${systemContext}\nRespond naturally as Alfred.`;
-
+        const systemContext = `Context:\n- Action Taken: ${actionResult || 'None'}`;
+        const fullPrompt = `
+        User input:
+        "${prompt}"
+        
+        ${systemContext}
+        
+        Instructions:
+        • Respond in a minimal, formal British butler tone.
+        • Do not reformulate the user's statement.
+        • Avoid redundancy and filler.
+        • Short answers only.
+        • Do not prefix, suffix, explain, or mention character count.
+        * Address the user as "Sir" No name.
+        `;
         // TALK DIRECTLY TO WINDOWS - Bypasses macOS Deno Sandbox
         const res = await fetch('http://192.168.100.35:11434/api/generate', {
             method: 'POST',
@@ -101,160 +179,68 @@ export default function AlfredInterface() {
             body: JSON.stringify({
                 model: "phi3", // "llama3.1:8b",
                 prompt: fullPrompt,
-                stream: false
+                stream: true
             })
         });
 
         if (!res.ok) throw new Error("Ollama connection failed");
+        if (!res.body) throw new Error("No response body");
 
-        const data = await res.json();
-        if (data?.response) {
-            speak(data.response);
-            setLastWordDisplay(data.response);
-        } else {
-            speak("I have nothing to say.");
+        setProcessingState('speaking');
+        if (recognitionRef.current) {
+            try { recognitionRef.current.stop(); } catch(e) {}
+        }
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        window.speechSynthesis.cancel(); // Clear queue for new response
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+        let fullResponse = '';
+        let sentenceBuffer = '';
+
+        while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            done = doneReading;
+            
+            if (value) {
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n');
+                
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const json = JSON.parse(line);
+                        if (json.response) {
+                            const word = json.response;
+                            fullResponse += word;
+                            sentenceBuffer += word;
+                            setLastWordDisplay(fullResponse);
+                            
+                            // Speak chunk if complete sentence detected
+                            let match = sentenceBuffer.match(/([.!?\n]+)/);
+                            if (match) {
+                                const index = match.index! + match[0].length;
+                                const toSpeak = sentenceBuffer.substring(0, index);
+                                const remainder = sentenceBuffer.substring(index);
+                                speakChunk(toSpeak, false);
+                                sentenceBuffer = remainder;
+                            }
+                        }
+                        if (json.done) {
+                            // Always call speakChunk with true at the end
+                            speakChunk(sentenceBuffer, true);
+                        }
+                    } catch (e) {
+                         console.error("JSON Parse error", e);
+                    }
+                }
+            }
         }
     } catch (err) {
         console.error("Browser direct call failed:", err);
         speak("I could not reach the brain directly.");
     }
-  };
-
-  const createCommands = () => ({
-    Alfred: {
-        nice: () => fetchCommand('music/nice'),
-        powerful: () => fetchCommand('music/powerful'),
-        funny: () => fetchCommand('music/funny'),
-        sad: () => fetchCommand('music/sad'),
-        awesome: () => fetchCommand('music/awesome'),
-        want: {    
-            talk: () => fetchCommand('link/talk'),
-            study: () => fetchCommand('link/study'),
-            message: () => fetchCommand('link/message'),
-            look: {
-                board: () => fetchCommand('link/board'),
-                work: () => fetchCommand('link/work'),
-                storage: () => fetchCommand('link/storage'),
-                library: () => fetchCommand('link/library'),
-                space: () => fetchCommand('link/space'),
-                editor: () => fetchCommand('link/editor'),
-                dashboard: () => fetchCommand('link/dashboard'),
-                body: () => fetchCommand('link/body'),
-                anime: () => fetchCommand('link/anime')
-            },
-            have: {
-                fun: () => fetchCommand('link/fun'),
-                entertainment: () => fetchCommand('link/entertainment'),
-            },
-            make: {
-                project: () => fetchCommand('link/project'),
-                experiment: () => fetchCommand('link/experiment'),
-                regular: () => fetchCommand('link/regular'),
-                challenge: () => fetchCommand('link/challenge')
-            }
-        },
-        life: () => fetchCommand('info/life'),
-        remember: {
-            name: () => Promise.resolve("Remembered Name")
-        },
-        paint: {
-            blue: () => fetchCommand('paint/blue'),
-            yellow: () => fetchCommand('paint/yellow'),
-            pink: () => fetchCommand('paint/pink'),
-            black: () => fetchCommand('paint/black')
-        },
-        what: {
-            definition: () => fetchCommand('info/definition'),
-            your: {
-                name: () => fetchCommand('info/identity')
-            },
-            my: {
-                name: () => {
-                     const person = localStorage.getItem('currentPerson') || 'friend';
-                     return Promise.resolve(`Your name is ${person}`);
-                }
-            }
-        },
-        who: {
-            creator: () => fetchCommand('info/creator'),
-            you: () => fetchCommand('info/identity')
-        }
-    }
-  });
-
-  const showTreeInDom = (level: any) => {
-      const items: string[] = [];
-      for (const key in level) {
-          items.push(key);
-      }
-      setTreeItems(items);
-  };
-
-  const processCommand = async (text: string) => {
-      // Normalize: lowercase, strip punctuation, split into words
-      const words = text.toLowerCase()
-          .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
-          .split(/\s+/)
-          .filter(w => w.length > 0);
-
-      let currentLevel = commandLevelRef.current || rootCommandRef.current;
-      let executionMessages: string[] = [];
-      let pathChanged = false;
-
-      // Helper for case-insensitive key lookup
-      const findKey = (obj: any, searchKey: string) => 
-          Object.keys(obj).find(k => k.toLowerCase() === searchKey);
-
-      for (const word of words) {
-          if (word === 'delete') {
-              commandLevelRef.current = rootCommandRef.current;
-              showTreeInDom(rootCommandRef.current);
-              setCurrentWord('Reset');
-              return "Command Deleted/Reset";
-          }
-
-          // 1. Try to find in current level
-          let actualKey = findKey(currentLevel, word);
-          let next = actualKey ? currentLevel[actualKey] : undefined;
-
-          // 2. If not found, try root (allow context switching)
-          if (!next && currentLevel !== rootCommandRef.current) {
-              const rootKey = findKey(rootCommandRef.current, word);
-              if (rootKey) {
-                  currentLevel = rootCommandRef.current;
-                  actualKey = rootKey;
-                  next = currentLevel[actualKey];
-                  pathChanged = true;
-              }
-          }
-
-          if (next) {
-              setCurrentWord(actualKey!); 
-              if (soundOfCoincidenceRef.current) {
-                  soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
-              }
-
-              if (typeof next === 'function') {
-                  // Execute command
-                  const msg = await next();
-                  executionMessages.push(msg);
-                  // Note: We stay at currentLevel to allow sibling commands (e.g. "blue yellow")
-              } else {
-                  // Traverse deeper
-                  currentLevel = next;
-                  showTreeInDom(next);
-                  pathChanged = true;
-              }
-          }
-      }
-
-      commandLevelRef.current = currentLevel;
-
-      if (executionMessages.length > 0) {
-          return executionMessages.join(". ");
-      }
-      
-      return pathChanged ? "Navigated command tree" : null;
   };
 
   const startListening = () => {
@@ -273,8 +259,6 @@ export default function AlfredInterface() {
   const handleSilenceDetected = async () => {
       const text = transcriptBufferRef.current.trim();
       if (!text) {
-          // No speech, just restart listening loop handled by onend?
-          // If silence detected but buffer empty, maybe user just stopped talking?
           return; 
       }
       
@@ -287,13 +271,58 @@ export default function AlfredInterface() {
       setProcessingState('processing');
       setStatusMessage("Processing...");
 
-      // Process full transcript for VCLI
-      const vcliAction = await processCommand(text);
-      
-      const available = Object.keys(commandLevelRef.current || {});
-      await askOllama(text, vcliAction, available);
-      
-      // askOllama calls speak, which calls startListening on end
+      try {
+          const commandList = Object.keys(commands);
+          const prompt = `
+          You are a command parser.
+          User said: "${text}"
+          Available commands:
+          ${commandList.join('\n')}
+          
+          Select the command that the user somewhat mentioned or intended.
+          Reply with the exact command string from the list.
+          If no command matches, reply with 'NONE'.
+          `;
+          
+          // Silent LLM Request
+          const res = await fetch('http://192.168.100.35:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "phi3", 
+                prompt: prompt,
+                stream: false
+            })
+          });
+          
+          if (!res.ok) throw new Error("Silent LLM request failed");
+          
+          const json = await res.json();
+          const response = json.response;
+          console.log("Silent LLM Response:", response);
+          
+          const matchedKey = commandList.find(key => response.includes(key));
+          
+          if (matchedKey) {
+              console.log("Matched Command:", matchedKey);
+              setCurrentWord(matchedKey);
+              if (soundOfCoincidenceRef.current) {
+                  soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
+              }
+              
+              const command = commands[matchedKey];
+              const msg = await command.action();
+              
+              speak(msg || "Command executed.");
+          } else {
+              // Fallback to conversation
+              await askOllama(text, null, commandList);
+          }
+
+      } catch (err) {
+          console.error("Error in handleSilenceDetected", err);
+          speak("I encountered an error.");
+      }
   };
 
   useEffect(() => {
@@ -305,10 +334,6 @@ export default function AlfredInterface() {
     }
 
     soundOfCoincidenceRef.current = new Audio('/mp3/coincidence.mp3');
-    const alfredObj = createCommands();
-    rootCommandRef.current = alfredObj;
-    commandLevelRef.current = alfredObj;
-    showTreeInDom(alfredObj);
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true; 
@@ -336,10 +361,7 @@ export default function AlfredInterface() {
              }
         }
         
-        const fullTranscript = (transcriptBufferRef.current + ' ' + final + interim).trim();
-        // Actually, continuous mode appends to results list. 
-        // We should just read the latest results.
-        // A better way for continuous:
+        // Use full transcript from continuous results
         let t = '';
         for (let i = 0; i < event.results.length; ++i) {
             t += event.results[i][0].transcript;
@@ -382,8 +404,6 @@ export default function AlfredInterface() {
         if (shouldListenRef.current && processingState === 'listening') {
              // Restart
              try { recognition.start(); } catch(e) {}
-        } else {
-             // Maybe we stopped to speak or process
         }
     };
 
@@ -447,7 +467,6 @@ export default function AlfredInterface() {
       {diagnostics && (
           <div className="fixed top-4 right-4 bg-black/90 border border-red-500 p-4 text-left font-mono text-sm z-50 rounded">
               <h3 className="text-red-500 font-bold mb-2">Diagnostics</h3>
-              {/* Diag content */}
           </div>
       )}
 
@@ -463,13 +482,7 @@ export default function AlfredInterface() {
               
               <h1 className="text-6xl font-bold text-green-500 tracking-widest uppercase glow">{currentWord}</h1>
               
-              <ul className="flex flex-wrap justify-center gap-4 max-w-2xl">
-                  {treeItems.map((item) => (
-                      <li key={item} className="text-xl text-green-700 bg-black/50 px-3 py-1 border border-green-900 rounded">
-                          {item}
-                      </li>
-                  ))}
-              </ul>
+              {/* Removed treeItems rendering */}
               
               <button 
                 onClick={() => {
