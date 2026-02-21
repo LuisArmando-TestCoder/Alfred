@@ -1,3 +1,5 @@
+import { fromFileUrl, dirname, join } from "https://deno.land/std@0.224.0/path/mod.ts";
+
 /**
  * Generates a random integer between min and max (inclusive).
  * Useful for your randomized response logic.
@@ -15,3 +17,17 @@ export const corsHeaders = {
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
+
+export function getDataPath(filename: string): string {
+    const currentDir = dirname(fromFileUrl(import.meta.url));
+    // currentDir is where utils.ts is located (deno/)
+    // data is in deno/data/
+    return join(currentDir, "data", filename);
+}
+
+export function getRootPath(filename: string): string {
+    const currentDir = dirname(fromFileUrl(import.meta.url));
+    // currentDir is deno/
+    // filename is relative to deno/ e.g. "bridge.py"
+    return join(currentDir, filename);
+}

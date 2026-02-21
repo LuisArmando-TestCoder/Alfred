@@ -24,14 +24,13 @@ export default function AlfredInterface() {
   
   const shouldListenRef = useRef(false);
   const isSystemActiveRef = useRef(false);
-  const retryCountRef = useRef(0);
-  const isNetworkErrorRef = useRef(false);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const transcriptBufferRef = useRef('');
   const accumulatedTranscriptRef = useRef('');
   
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
-  const [diagnostics, setDiagnostics] = useState<any>(null);
+  const isConversationDoneRef = useRef(true);
+  const isSpeechDoneRef = useRef(true);
 
   const fetchCommand = async (endpoint: string) => {
       try {
@@ -59,9 +58,7 @@ export default function AlfredInterface() {
     'play funny music': { action: () => fetchCommand('music/funny') },
     'play sad music': { action: () => fetchCommand('music/sad') },
     'play awesome music': { action: () => fetchCommand('music/awesome') },
-    'open slack': { action: () => fetchCommand('link/talk') },
     'open frontend masters': { action: () => fetchCommand('link/study') },
-    'open whatsapp': { action: () => fetchCommand('link/message') },
     'open trello': { action: () => fetchCommand('link/board') },
     'open github': { action: () => fetchCommand('link/work') },
     'open storage': { action: () => fetchCommand('link/storage') },
@@ -75,187 +72,301 @@ export default function AlfredInterface() {
     'start new project': { action: () => fetchCommand('link/project') },
     'open regex101': { action: () => fetchCommand('link/regular') },
     'open challenges': { action: () => fetchCommand('link/challenge') },
-    'life definition': { action: () => fetchCommand('info/life') },
-    'define word': { action: () => fetchCommand('info/definition') },
-    'who are you': { action: () => fetchCommand('info/identity') },
-    'who is your creator': { action: () => fetchCommand('info/creator') },
     'paint blue': { action: () => fetchCommand('paint/blue') },
     'paint yellow': { action: () => fetchCommand('paint/yellow') },
     'paint pink': { action: () => fetchCommand('paint/pink') },
     'paint black': { action: () => fetchCommand('paint/black') },
-    'remember name': { action: () => Promise.resolve("Remembered Name") },
-    'what is my name': { action: () => {
-         const person = localStorage.getItem('currentPerson') || 'friend';
-         return Promise.resolve(`Your name is ${person}`);
-    } }
   };
 
-  const speak = (text: string) => {
-    if (!isSystemActiveRef.current) return;
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-
-      setProcessingState('speaking');
-      
-      // Stop listening if happening
-      if (recognitionRef.current) {
-          try { recognitionRef.current.stop(); } catch(e) {}
+  const checkRestartListening = () => {
+    if (isConversationDoneRef.current && isSpeechDoneRef.current) {
+      if (isSystemActiveRef.current) {
+        startListening();
+      } else {
+        setProcessingState('paused');
       }
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    }
+  };
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      
+  const speakChunk = (text: string, isFinal: boolean = false) => {
+    if (!isSystemActiveRef.current) return;
+    if ('speechSynthesis' in window) {
+      if (!text && !isFinal) return;
+      const textToSpeak = text || " ";
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
       let voices = voicesRef.current;
       if (voices.length === 0) {
         voices = window.speechSynthesis.getVoices();
         voicesRef.current = voices;
       }
-
       const voice = voices.find(v => v.name === 'Google UK English Male') || voices[0];
       if (voice) utterance.voice = voice;
+      utterance.rate = 0.8;
+      utterance.pitch = 0.8;
 
-      utterance.rate = 0.8; 
-      utterance.pitch = 0.8; 
-      
-      utterance.onend = () => {
-          // Resume listening after speaking
-          if (isSystemActiveRef.current) {
-              startListening();
-          } else {
-              setProcessingState('paused');
+      if (isFinal) {
+        isSpeechDoneRef.current = false;
+        utterance.onend = () => {
+          if (!window.speechSynthesis.pending) {
+            isSpeechDoneRef.current = true;
+            checkRestartListening();
           }
-      };
-
+        };
+      }
       window.speechSynthesis.speak(utterance);
     }
   };
 
-  const speakChunk = (text: string, isFinal: boolean = false) => {
-      if (!isSystemActiveRef.current) return;
-
-      if ('speechSynthesis' in window) {
-          // If text is empty and not final, do nothing
-          if (!text && !isFinal) return;
-          
-          // If text is empty but final, use a space to trigger onend
-          const textToSpeak = text || " ";
-
-          const utterance = new SpeechSynthesisUtterance(textToSpeak);
-          let voices = voicesRef.current;
-          if (voices.length === 0) {
-              voices = window.speechSynthesis.getVoices();
-              voicesRef.current = voices;
-          }
-          const voice = voices.find(v => v.name === 'Google UK English Male') || voices[0];
-          if (voice) utterance.voice = voice;
-          utterance.rate = 0.8; 
-          utterance.pitch = 0.8; 
-
-          if (isFinal) {
-              utterance.onend = () => {
-                  // Only restart listening if we are done with all chunks (queue empty)
-                  if (!window.speechSynthesis.pending) {
-                      if (isSystemActiveRef.current) {
-                          startListening();
-                      } else {
-                          setProcessingState('paused');
-                      }
-                  }
-              };
-          }
-
-          window.speechSynthesis.speak(utterance);
+  const speak = (text: string) => {
+    if (!isSystemActiveRef.current) return;
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setProcessingState('speaking');
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) { }
       }
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      const utterance = new SpeechSynthesisUtterance(text);
+      let voices = voicesRef.current;
+      if (voices.length === 0) {
+        voices = window.speechSynthesis.getVoices();
+        voicesRef.current = voices;
+      }
+      const voice = voices.find(v => v.name === 'Google UK English Male') || voices[0];
+      if (voice) utterance.voice = voice;
+      utterance.rate = 0.8;
+      utterance.pitch = 0.8;
+      isSpeechDoneRef.current = false;
+      utterance.onend = () => {
+        isSpeechDoneRef.current = true;
+        checkRestartListening();
+      };
+      window.speechSynthesis.speak(utterance);
+    }
   };
 
-  const runConversationAgent = async (prompt: string) => {
-    // Conversational Agent (Talks back)
-    setProcessingState('processing');
+  const runContextManager = async (prompt: string, currentContext: string) => {
     try {
-        const fullPrompt = `
+      const crudPrompt = `
+          You are a Context Manager. 
+          Your job is to update the Markdown Context file based on the new interaction.
+          The context file is not frugal, saves information in verboseProperty:conciseValue pairs (no spaces, it uses camelCase only and colons : to separate information and break lines to separate properties).
+          
+          Current Context Content:
+          """
+          ${currentContext}
+          """
+          
+          User just said: "${prompt}"
+          
+          Instructions:
+          1. Decide if you need to add, edit, or delete information from the context.
+          2. Return the ENTIRE updated content of the context file.
+          3. Follow the format strictly: verboseProperty:conciseValue (e.g., userMood:happy). No spaces.
+          4. Use camelCase for properties.
+          5. Use colons (:) to separate property and value.
+          6. Use new lines to separate different properties.
+          7. Output ONLY the new content. No explanations.
+          `;
+
+      const res = await fetch('http://192.168.100.35:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "phi3",
+          prompt: crudPrompt,
+          stream: false
+        })
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const newContext = json.response.trim();
+
+        // Save new context to server
+        await fetch('http://localhost:8000/api/context/raw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: newContext })
+        });
+
+        return newContext;
+      }
+      return currentContext;
+    } catch (e) {
+      console.error("Context Manager failed", e);
+      return currentContext;
+    }
+  };
+
+  const runConversationAgent = async (prompt: string, mdContext: string) => {
+    setProcessingState('processing');
+    isConversationDoneRef.current = false;
+    try {
+      const fullPrompt = `
+        Context:
+        ${mdContext}
+
         User input:
         "${prompt}"
         
         Instructions:
-        • Respond in a minimal, formal British butler tone.
-        • Do not reformulate the user's statement.
-        • Avoid redundancy and filler.
-        • Short answers only.
-        • Do not prefix, suffix, explain, or mention character count.
-        • Do not mention commands, functions, or that you are an AI.
-        • Treat it as conversation.
-        * Address the user as "Sir" No name.
+        • Respond in a minimal, direct, formal British butler tone.
+        • Address the user as "Sir".
+        • Keep it compact.
         `;
-        
-        const res = await fetch('http://192.168.100.35:11434/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "phi3",
-                prompt: fullPrompt,
-                stream: true
-            })
-        });
 
-        if (!res.ok) throw new Error("Ollama connection failed");
-        if (!res.body) throw new Error("No response body");
+      const res = await fetch('http://192.168.100.35:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "phi3",
+          prompt: fullPrompt,
+          stream: true
+        })
+      });
 
-        setProcessingState('speaking');
-        if (recognitionRef.current) {
-            try { recognitionRef.current.stop(); } catch(e) {}
-        }
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        window.speechSynthesis.cancel(); // Clear queue for new response
+      if (!res.ok) throw new Error("Ollama connection failed");
+      if (!res.body) throw new Error("No response body");
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let done = false;
-        let fullResponse = '';
-        let sentenceBuffer = '';
+      setProcessingState('speaking');
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) { }
+      }
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      window.speechSynthesis.cancel();
 
-        while (!done) {
-            const { value, done: doneReading } = await reader.read();
-            done = doneReading;
-            
-            if (value) {
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-                
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-                    try {
-                        const json = JSON.parse(line);
-                        if (json.response) {
-                            const word = json.response;
-                            fullResponse += word;
-                            sentenceBuffer += word;
-                            setLastWordDisplay(fullResponse);
-                            
-                            // Speak chunk if complete sentence detected
-                            let match = sentenceBuffer.match(/([.!?\n]+)/);
-                            if (match) {
-                                const index = match.index! + match[0].length;
-                                const toSpeak = sentenceBuffer.substring(0, index);
-                                const remainder = sentenceBuffer.substring(index);
-                                speakChunk(toSpeak, false);
-                                sentenceBuffer = remainder;
-                            }
-                        }
-                        if (json.done) {
-                            // Always call speakChunk with true at the end
-                            speakChunk(sentenceBuffer, true);
-                        }
-                    } catch (e) {
-                         console.error("JSON Parse error", e);
-                    }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let fullResponse = '';
+      let sentenceBuffer = '';
+      let lineBuffer = '';
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          lineBuffer += chunk;
+          const lines = lineBuffer.split('\n');
+          lineBuffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const json = JSON.parse(line);
+              if (json.response) {
+                const word = json.response;
+                fullResponse += word;
+                sentenceBuffer += word;
+                setLastWordDisplay(fullResponse);
+
+                let match = sentenceBuffer.match(/([.!?\n]+)/);
+                if (match) {
+                  const index = match.index! + match[0].length;
+                  const toSpeak = sentenceBuffer.substring(0, index);
+                  const remainder = sentenceBuffer.substring(index);
+                  speakChunk(toSpeak, false);
+                  sentenceBuffer = remainder;
                 }
+              }
+              if (json.done) {
+                speakChunk(sentenceBuffer, true);
+                isConversationDoneRef.current = true;
+                checkRestartListening();
+                // Record history
+                fetch('http://localhost:8000/api/evolve', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ prompt, response: fullResponse })
+                }).catch(console.error);
+              }
+            } catch (e) {
+              console.error("JSON Parse error", e);
             }
+          }
         }
+      }
     } catch (err) {
-        console.error("Browser direct call failed:", err);
-        speak("I could not reach the brain directly.");
+      console.error("Agent flow failed:", err);
+      speak("I could not reach the brain.");
+      isConversationDoneRef.current = true;
+      checkRestartListening();
     }
+  };
+
+  const runCommandAgent = async (prompt: string, context: string) => {
+    try {
+      const commandList = Object.keys(commands);
+      const cmdPrompt = `
+        You are a command parser.
+        Context:
+        ${context}
+        User said: "${prompt}"
+        Available commands:
+        ${commandList.join('\n')}
+        
+        Instructions:
+        1. Decide which command to trigger with which arguments.
+        2. Often times do nothing and produce an output full of dots (e.g. ".......").
+        3. Only perform an action if the user message explicitly asks for it, usually by using a verb at the beginning.
+        4. If a command matches, return the exact command string.
+        5. Output ONLY the command or dots. No other text.
+        `;
+
+      const res = await fetch('http://192.168.100.35:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "phi3",
+          prompt: cmdPrompt,
+          stream: false,
+          options: { temperature: 0 }
+        })
+      });
+
+      if (!res.ok) return;
+      const json = await res.json();
+      const response = json.response.trim();
+      
+      const matchedKey = commandList.find(key => response.includes(key));
+      if (matchedKey) {
+        setCurrentWord(matchedKey);
+        if (soundOfCoincidenceRef.current) {
+          soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
+        }
+        const command = commands[matchedKey];
+        const msg = await command.action();
+        if (msg) speak(msg);
+      }
+    } catch (err) {
+      console.error("Command Agent failed", err);
+    }
+  };
+
+  const handleSilenceDetected = async () => {
+    const fullText = (accumulatedTranscriptRef.current + transcriptBufferRef.current).trim();
+    if (!fullText) return;
+
+    shouldListenRef.current = false;
+    if (recognitionRef.current) recognitionRef.current.stop();
+    setProcessingState('processing');
+    setStatusMessage("Processing...");
+
+    // 0. Fetch Current Context once
+    const contextRes = await fetch('http://localhost:8000/api/context/raw');
+    const contextData = await contextRes.json();
+    const currentContext = contextData.content;
+
+    // Simultaneous Execution of 3 agents
+    isConversationDoneRef.current = false;
+    isSpeechDoneRef.current = true; // Initial state for this cycle
+
+    runCommandAgent(fullText, currentContext);
+    runContextManager(fullText, currentContext);
+    runConversationAgent(fullText, currentContext);
   };
 
   const startListening = () => {
@@ -264,181 +375,65 @@ export default function AlfredInterface() {
       setStatusMessage("Listening...");
       transcriptBufferRef.current = '';
       accumulatedTranscriptRef.current = '';
-      
       if (recognitionRef.current) {
-          try { recognitionRef.current.start(); } catch(e) {
-              // Ignore if already started
-          }
+          try { recognitionRef.current.start(); } catch(e) {}
       }
-  };
-
-  const runCommandAgent = async (text: string) => {
-    try {
-        const commandList = Object.keys(commands);
-        const prompt = `
-        You are a command parser.
-        User said: "${text}"
-        Available commands:
-        ${commandList.join('\n')}
-        
-        Instructions:
-        1. Return the exact command string from the list that best matches the user's intent.
-        2. If NO command matches, return 'NONE'.
-        3. Output ONLY the command or 'NONE'. No other text.
-        `;
-        
-        const res = await fetch('http://192.168.100.35:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-              model: "phi3", 
-              prompt: prompt,
-              stream: false,
-              options: { temperature: 0 }
-          })
-        });
-        
-        if (!res.ok) return;
-        
-        const json = await res.json();
-        const response = json.response.trim();
-        console.log("Command Agent Response:", response);
-        
-        const matchedKey = commandList.find(key => response.includes(key));
-        
-        if (matchedKey) {
-            console.log("Matched Command:", matchedKey);
-            setCurrentWord(matchedKey);
-            if (soundOfCoincidenceRef.current) {
-                soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
-            }
-            
-            const command = commands[matchedKey];
-            const msg = await command.action();
-            
-            if (msg) speak(msg);
-        }
-    } catch (err) {
-        console.error("Command Agent failed", err);
-    }
-  };
-
-  const handleSilenceDetected = async () => {
-      const fullText = (accumulatedTranscriptRef.current + transcriptBufferRef.current).trim();
-      if (!fullText) {
-          return; 
-      }
-      
-      console.log("Silence detected. Processing:", fullText);
-      
-      // Stop listening to process
-      shouldListenRef.current = false; 
-      if (recognitionRef.current) recognitionRef.current.stop();
-      
-      setProcessingState('processing');
-      setStatusMessage("Processing...");
-
-      // Synchronous (Parallel) Execution
-      runCommandAgent(fullText);
-      runConversationAgent(fullText);
   };
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
     if (!SpeechRecognition) {
       setStatusMessage("Browser does not support Speech Recognition");
       return;
     }
-
     soundOfCoincidenceRef.current = new Audio('/mp3/coincidence.mp3');
-
     const recognition = new SpeechRecognition();
     recognition.continuous = true; 
     recognition.interimResults = true;
     recognition.lang = 'en-US';
-
     recognition.onstart = () => {
-        console.log("Speech Recognition Started");
         setProcessingState('listening');
         setStatusMessage("Listening...");
     };
-
     recognition.onresult = (event: any) => {
-        retryCountRef.current = 0;
-        
-        let interim = '';
-        let final = '';
-
-        // Build transcript from results
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-             if (event.results[i].isFinal) {
-                 final += event.results[i][0].transcript;
-             } else {
-                 interim += event.results[i][0].transcript;
-             }
-        }
-        
-        // Use full transcript from continuous results
         let t = '';
         for (let i = 0; i < event.results.length; ++i) {
             t += event.results[i][0].transcript;
         }
-        
         transcriptBufferRef.current = t;
         setLastWordDisplay(accumulatedTranscriptRef.current + t);
-        setProcessingState('listening');
-        
-        // Reset silence timer (debounce 2s)
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = setTimeout(() => {
              handleSilenceDetected();
         }, 2000);
     };
-
     recognition.onerror = (e: any) => {
         if (e.error === 'no-speech') return;
-
-        console.error("Speech Recognition Error:", e.error || e);
-        
         if (e.error === 'network') {
-            // Simple network handling
-            setStatusMessage("Network Error. Retrying...");
-            isNetworkErrorRef.current = true;
             try { recognition.stop(); } catch(e) {}
         } else {
-             setStatusMessage("Error: " + (e.error || "Unknown"));
              if (e.error !== 'aborted') {
                  setProcessingState('idle');
                  shouldListenRef.current = false;
              }
         }
     };
-
     recognition.onend = () => {
-        console.log("Speech Recognition Ended");
-        
-        // If we are supposed to be listening and not processing/speaking
         if (shouldListenRef.current && processingState === 'listening') {
-             // Restart
              accumulatedTranscriptRef.current += transcriptBufferRef.current + ' ';
              transcriptBufferRef.current = '';
              try { recognition.start(); } catch(e) {}
         }
     };
-
     recognitionRef.current = recognition;
-    
     if ('speechSynthesis' in window) {
          window.speechSynthesis.onvoiceschanged = () => {
              voicesRef.current = window.speechSynthesis.getVoices();
          };
          voicesRef.current = window.speechSynthesis.getVoices();
     }
-
     setAvailableCommands(Object.keys(commands));
     setIsReady(true);
-
     return () => {
         shouldListenRef.current = false;
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
@@ -452,29 +447,21 @@ export default function AlfredInterface() {
       shouldListenRef.current = true;
       isSystemActiveRef.current = true;
       navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(() => {
-            startListening();
-        })
-        .catch((err) => {
-            console.error("Microphone permission denied:", err);
-            setStatusMessage("Permission Denied");
-        });
+        .then(() => startListening())
+        .catch(() => setStatusMessage("Permission Denied"));
   };
 
   const toggleListening = () => {
     if (isSystemActiveRef.current) {
-      // Pause
       isSystemActiveRef.current = false;
       shouldListenRef.current = false;
       setProcessingState('paused');
-      setStatusMessage("Paused");
       if (recognitionRef.current) {
           try { recognitionRef.current.stop(); } catch(e) {}
       }
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       window.speechSynthesis.cancel();
     } else {
-      // Resume
       isSystemActiveRef.current = true;
       startListening();
     }
@@ -493,37 +480,22 @@ export default function AlfredInterface() {
   return (
     <div className="relative z-10 flex flex-col items-center justify-center min-h-screen font-sans text-center">
       {!isReady && <div className="text-xl text-green-500">Loading Alfred System...</div>}
-      
       {isReady && processingState === 'idle' && (
           <div className="flex flex-col items-center">
-              <button 
-                onClick={handleStartManual}
-                className="px-6 py-3 text-2xl font-bold text-green-500 border-2 border-green-500 rounded hover:bg-green-500 hover:text-black transition"
-              >
+              <button onClick={handleStartManual} className="px-6 py-3 text-2xl font-bold text-green-500 border-2 border-green-500 rounded hover:bg-green-500 hover:text-black transition">
                 Click to Activate
               </button>
               {statusMessage && <div className="mt-4 text-red-500 bg-black/80 px-4 py-2 rounded border border-red-900">{statusMessage}</div>}
           </div>
       )}
-
-      {diagnostics && (
-          <div className="fixed top-4 right-4 bg-black/90 border border-red-500 p-4 text-left font-mono text-sm z-50 rounded">
-              <h3 className="text-red-500 font-bold mb-2">Diagnostics</h3>
-          </div>
-      )}
-
       {processingState !== 'idle' && (
           <div className="flex flex-col items-center gap-8">
               <div className={`text-xl font-bold border px-4 py-2 rounded bg-black/80 ${getStateColor()} border-current`}>
                   State: {processingState.toUpperCase()}
               </div>
-
               {statusMessage && <span className="text-lg text-yellow-400 mb-2 border border-yellow-900 px-2 py-1 rounded bg-black/50">{statusMessage}</span>}
-              
               <span className="text-2xl text-green-400 opacity-80 max-w-3xl px-4">{lastWordDisplay}</span>
-              
               <h1 className="text-6xl font-bold text-green-500 tracking-widest uppercase glow">{currentWord}</h1>
-              
               <ul className="flex flex-wrap justify-center gap-4 max-w-4xl max-h-60 overflow-y-auto px-4">
                   {availableCommands.map((item) => (
                       <li key={item} className="text-sm text-green-700 bg-black/50 px-2 py-1 border border-green-900 rounded hover:text-green-500 hover:border-green-500 transition-colors">
@@ -531,31 +503,16 @@ export default function AlfredInterface() {
                       </li>
                   ))}
               </ul>
-              
-              <button 
-                onClick={toggleListening}
-                className="mt-4 px-6 py-2 font-bold text-yellow-500 border border-yellow-500 rounded hover:bg-yellow-500 hover:text-black transition-colors"
-              >
+              <button onClick={toggleListening} className="mt-4 px-6 py-2 font-bold text-yellow-500 border border-yellow-500 rounded hover:bg-yellow-500 hover:text-black transition-colors">
                 {processingState === 'paused' ? 'RESUME' : 'PAUSE'}
               </button>
-
-              <button 
-                onClick={() => {
-                    shouldListenRef.current = false;
-                    if (recognitionRef.current) recognitionRef.current.abort();
-                    window.location.reload();
-                }} 
-                className="mt-8 px-4 py-2 text-sm text-red-500 border border-red-500 rounded hover:bg-red-500 hover:text-white"
-              >
+              <button onClick={() => { shouldListenRef.current = false; if (recognitionRef.current) recognitionRef.current.abort(); window.location.reload(); }} className="mt-8 px-4 py-2 text-sm text-red-500 border border-red-500 rounded hover:bg-red-500 hover:text-white">
                 Reset System
               </button>
           </div>
       )}
-      
       <style jsx global>{`
-        .glow {
-            text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
-        }
+        .glow { text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41; }
       `}</style>
     </div>
   );

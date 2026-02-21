@@ -4,6 +4,8 @@ import { handleLink } from "./controllers/links.ts";
 import { handleInfo } from "./controllers/info.ts";
 import { handlePaint } from "./controllers/paint.ts";
 import { handleOllama } from "./controllers/ollama.ts";
+import { handleContext, handleContextRaw, handleHistory } from "./controllers/context.ts";
+import { handleEvolutionApply } from "./controllers/evolution.ts";
 
 Deno.serve({ port: 8000 }, async (req) => {
     if (req.method === "OPTIONS") {
@@ -31,6 +33,22 @@ Deno.serve({ port: 8000 }, async (req) => {
 
     if (path === "/api/ask" && req.method === "POST") {
         return await handleOllama(req);
+    }
+
+    if (path === "/api/context" && req.method === "POST") {
+        return await handleContext(req);
+    }
+
+    if (path === "/api/context/raw") {
+        return await handleContextRaw(req);
+    }
+
+    if (path === "/api/history" && req.method === "GET") {
+        return await handleHistory(req);
+    }
+
+    if (path === "/api/evolve" && req.method === "POST") {
+        return await handleEvolutionApply(req);
     }
 
     return new Response("Not Found", { status: 404, headers: corsHeaders });
