@@ -149,8 +149,8 @@ export default function AlfredInterface() {
     try {
       const crudPrompt = `
           You are a Context Manager. 
-          Your job is to update the Markdown Context file based on the new interaction.
-          The context file is not frugal, saves information in verboseProperty:conciseValue pairs (no spaces, it uses camelCase only and colons : to separate information and break lines to separate properties).
+          Your job is to update the Context file based on the new interaction.
+          The context file saves information in verboseProperty:conciseValue pairs.
           
           Current Context Content:
           """
@@ -160,13 +160,19 @@ export default function AlfredInterface() {
           User just said: "${prompt}"
           
           Instructions:
-          1. Decide if you need to add, edit, or delete information from the context.
-          2. Return the ENTIRE updated content of the context file.
-          3. Follow the format strictly: verboseProperty:conciseValue (e.g., userMood:happy). No spaces.
-          4. Use camelCase for properties.
-          5. Use colons (:) to separate property and value.
-          6. Use new lines to separate different properties.
-          7. Output ONLY the new content. No explanations.
+          1. Return the ENTIRE updated content of the context.
+          2. Use ONLY verboseProperty:conciseValue pairs.
+          3. Use camelCase for properties. NO spaces in properties or values.
+          4. Use colons (:) to separate property and value.
+          5. MANDATORY: Use a NEW LINE to separate each property-value pair.
+          6. Do NOT delete existing information unless it is explicitly contradicted or the user asks to forget it.
+          7. Output ONLY the plain text content. 
+          8. NEVER use markdown blocks (no \`\`\`), no headers, no explanations.
+          
+          Example Output:
+          userName:PaulRyan
+          userMood:happy
+          lastAction:requestMusic
           `;
 
       const res = await fetch('http://192.168.100.35:11434/api/generate', {
@@ -175,7 +181,8 @@ export default function AlfredInterface() {
         body: JSON.stringify({
           model: "phi3",
           prompt: crudPrompt,
-          stream: false
+          stream: false,
+          options: { temperature: 0 }
         })
       });
 
@@ -214,6 +221,9 @@ export default function AlfredInterface() {
         • Respond in a minimal, direct, formal British butler tone.
         • Address the user as "Sir".
         • Keep it compact.
+        • Do NOT reveal or mention the internal context properties unless explicitly asked to do so.
+        • ONLY provide the natural language response meant to be spoken.
+        • NEVER output internal context updates, markdown blocks, or key-value pairs.
         `;
 
       const res = await fetch('http://192.168.100.35:11434/api/generate', {
@@ -222,7 +232,8 @@ export default function AlfredInterface() {
         body: JSON.stringify({
           model: "phi3",
           prompt: fullPrompt,
-          stream: true
+          stream: true,
+          options: { temperature: 0.3 }
         })
       });
 
@@ -276,12 +287,6 @@ export default function AlfredInterface() {
                 speakChunk(sentenceBuffer, true);
                 isConversationDoneRef.current = true;
                 checkRestartListening();
-                // Record history
-                fetch('http://localhost:8000/api/evolve', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ prompt, response: fullResponse })
-                }).catch(console.error);
               }
             } catch (e) {
               console.error("JSON Parse error", e);
@@ -309,11 +314,12 @@ export default function AlfredInterface() {
         ${commandList.join('\n')}
         
         Instructions:
-        1. Decide which command to trigger with which arguments.
-        2. Often times do nothing and produce an output full of dots (e.g. ".......").
-        3. Only perform an action if the user message explicitly asks for it, usually by using a verb at the beginning.
-        4. If a command matches, return the exact command string.
-        5. Output ONLY the command or dots. No other text.
+        1. Decide which command to trigger from the list.
+        2. If the user message does NOT explicitly ask for one of the available commands, you MUST output ONLY dots: .......
+        3. A command is only explicitly asked for if the user uses a clear verb at the beginning (e.g., "Play...", "Open...", "Paint...").
+        4. Do NOT explain your choice. Do NOT talk.
+        5. If a command matches, return its exact name from the list.
+        6. If NO command is requested, output ONLY dots: .......
         `;
 
       const res = await fetch('http://192.168.100.35:11434/api/generate', {
@@ -331,6 +337,10 @@ export default function AlfredInterface() {
       const json = await res.json();
       const response = json.response.trim();
       
+      if (response.includes('..')) {
+        return;
+      }
+
       const matchedKey = commandList.find(key => response.includes(key));
       if (matchedKey) {
         setCurrentWord(matchedKey);

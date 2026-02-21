@@ -1,7 +1,7 @@
-```markdown
-- userMood:neutralSirOkayHelloSoUp
-- usePreferredName:"Armando"
-- avoidInappropriateLanguageReinforcedTrue
-- respectUserFrustrationWithUnderstandingEnabledFalse
-- maintainServiceQualityBalanceDespiteOccasionalFrustrationRequiredTrue
-```
+"""
+userName:ArmandoRyan
+consentGiven:true
+soundSystemImproveIfPossible:true
+youAreAllDoingGreat:true
+animeInterestYes:true
+"""
