@@ -17,9 +17,11 @@ export default function AlfredInterface() {
   const [availableCommands, setAvailableCommands] = useState<string[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [processingState, setProcessingState] = useState<ProcessingState>('idle');
+  const processingStateRef = useRef<ProcessingState>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   
   const recognitionRef = useRef<any>(null);
+  const isRecognitionRunningRef = useRef(false);
   const soundOfCoincidenceRef = useRef<HTMLAudioElement | null>(null);
   
   const shouldListenRef = useRef(false);
@@ -78,12 +80,17 @@ export default function AlfredInterface() {
     'paint black': { action: () => fetchCommand('paint/black') },
   };
 
+  const updateProcessingState = (state: ProcessingState) => {
+    setProcessingState(state);
+    processingStateRef.current = state;
+  };
+
   const checkRestartListening = () => {
     if (isConversationDoneRef.current && isSpeechDoneRef.current) {
       if (isSystemActiveRef.current) {
         startListening();
       } else {
-        setProcessingState('paused');
+        updateProcessingState('paused');
       }
     }
   };
@@ -120,7 +127,7 @@ export default function AlfredInterface() {
   const speak = (text: string) => {
     if (!isSystemActiveRef.current) return;
     if ('speechSynthesis' in window) {
-      setProcessingState('speaking');
+      updateProcessingState('speaking');
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch (e) { }
       }
@@ -206,7 +213,7 @@ export default function AlfredInterface() {
   };
 
   const runConversationAgent = async (prompt: string, mdContext: string) => {
-    setProcessingState('processing');
+    updateProcessingState('processing');
     isConversationDoneRef.current = false;
     try {
       const fullPrompt = `
@@ -236,7 +243,7 @@ export default function AlfredInterface() {
       if (!res.ok) throw new Error("Ollama connection failed");
       if (!res.body) throw new Error("No response body");
 
-      setProcessingState('speaking');
+      updateProcessingState('speaking');
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch (e) { }
       }
@@ -357,7 +364,7 @@ export default function AlfredInterface() {
 
     shouldListenRef.current = false;
     if (recognitionRef.current) recognitionRef.current.stop();
-    setProcessingState('processing');
+    updateProcessingState('processing');
     setStatusMessage("Processing...");
 
     if ('speechSynthesis' in window) {
@@ -380,11 +387,11 @@ export default function AlfredInterface() {
 
   const startListening = () => {
       shouldListenRef.current = true;
-      setProcessingState('listening');
+      updateProcessingState('listening');
       setStatusMessage("Listening...");
       transcriptBufferRef.current = '';
       accumulatedTranscriptRef.current = '';
-      if (recognitionRef.current) {
+      if (recognitionRef.current && !isRecognitionRunningRef.current) {
           try { recognitionRef.current.start(); } catch(e) {}
       }
   };
@@ -401,7 +408,8 @@ export default function AlfredInterface() {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
     recognition.onstart = () => {
-        setProcessingState('listening');
+        isRecognitionRunningRef.current = true;
+        updateProcessingState('listening');
         setStatusMessage("Listening...");
     };
     recognition.onresult = (event: any) => {
@@ -422,13 +430,15 @@ export default function AlfredInterface() {
             try { recognition.stop(); } catch(e) {}
         } else {
              if (e.error !== 'aborted') {
-                 setProcessingState('idle');
+                 updateProcessingState('idle');
                  shouldListenRef.current = false;
              }
         }
     };
     recognition.onend = () => {
-        if (shouldListenRef.current && processingState === 'listening') {
+        isRecognitionRunningRef.current = false;
+        // If it was supposed to be listening, restart it
+        if (shouldListenRef.current && processingStateRef.current === 'listening') {
              accumulatedTranscriptRef.current += transcriptBufferRef.current + ' ';
              transcriptBufferRef.current = '';
              try { recognition.start(); } catch(e) {}
@@ -443,7 +453,18 @@ export default function AlfredInterface() {
     }
     setAvailableCommands(Object.keys(commands));
     setIsReady(true);
+
+    const watchdog = setInterval(() => {
+      if (shouldListenRef.current && 
+          processingStateRef.current === 'listening' && 
+          !isRecognitionRunningRef.current) {
+        console.log("Watchdog: Restarting recognition...");
+        try { recognition.start(); } catch(e) {}
+      }
+    }, 5000);
+
     return () => {
+        clearInterval(watchdog);
         shouldListenRef.current = false;
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         if (recognitionRef.current) {
@@ -464,7 +485,7 @@ export default function AlfredInterface() {
     if (isSystemActiveRef.current) {
       isSystemActiveRef.current = false;
       shouldListenRef.current = false;
-      setProcessingState('paused');
+      updateProcessingState('paused');
       if (recognitionRef.current) {
           try { recognitionRef.current.stop(); } catch(e) {}
       }
