@@ -1,7 +1,7 @@
-"""
-userName:ArmandoRyan
-consentGiven:true
-soundSystemImproveIfPossible:true
-youAreAllDoingGreat:true
-animeInterestYes:true
-"""
+userName:Armando
+age:27
+gender:"man"
+preferredTitle:"Sir"
+profession:"coder software architect"
+moodStatus:"greatest and the greatest"
+animeInterestLevel:"interested yes"
