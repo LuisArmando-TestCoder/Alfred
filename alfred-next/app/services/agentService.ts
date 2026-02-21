@@ -243,19 +243,26 @@ export const runConversationAgent = async (
               const word = json.response;
               fullResponse += word;
               sentenceBuffer += word;
-              callbacks.onWord(fullResponse);
+
+              const cleanFullResponse = fullResponse.replace(/<\|.*?\|>/g, '');
+              callbacks.onWord(cleanFullResponse);
 
               let match = sentenceBuffer.match(/([.!?\n]+)/);
               if (match) {
                 const index = match.index! + match[0].length;
                 const toSpeak = sentenceBuffer.substring(0, index);
                 const remainder = sentenceBuffer.substring(index);
-                callbacks.onSentence(toSpeak);
+                
+                const cleanToSpeak = toSpeak.replace(/<\|.*?\|>/g, '').trim();
+                if (cleanToSpeak) {
+                  callbacks.onSentence(cleanToSpeak);
+                }
                 sentenceBuffer = remainder;
               }
             }
             if (json.done) {
-              callbacks.onComplete(sentenceBuffer);
+              const cleanFinal = sentenceBuffer.replace(/<\|.*?\|>/g, '').trim();
+              callbacks.onComplete(cleanFinal);
             }
           } catch (e) {
             console.error("JSON Parse error", e);

@@ -73,7 +73,9 @@ export function useAlfredSpeech({
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     if (!text && !isFinal) return;
 
+    onProcessingStateChange('speaking');
     isSpeechDoneRef.current = false;
+    stopListening();
 
     const textToSpeak = text || " ";
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -96,7 +98,7 @@ export function useAlfredSpeech({
     };
     
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [onProcessingStateChange, stopListening]);
 
   const cancelSpeech = useCallback(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -118,12 +120,19 @@ export function useAlfredSpeech({
     recognition.lang = 'en-US';
 
     recognition.onstart = () => {
+      if (!shouldListenRef.current || processingStateRef.current !== 'listening') {
+        try { recognition.stop(); } catch (e) {}
+        return;
+      }
       isRecognitionRunningRef.current = true;
       onProcessingStateChange('listening');
       onStatusChange("Listening...");
     };
 
     recognition.onresult = (event: any) => {
+      if (!shouldListenRef.current || processingStateRef.current !== 'listening') {
+        return;
+      }
       let t = '';
       for (let i = 0; i < event.results.length; ++i) {
         t += event.results[i][0].transcript;
@@ -133,7 +142,9 @@ export function useAlfredSpeech({
       
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = setTimeout(() => {
-        onSilenceDetected();
+        if (shouldListenRef.current && processingStateRef.current === 'listening') {
+          onSilenceDetected();
+        }
       }, 2000);
     };
 

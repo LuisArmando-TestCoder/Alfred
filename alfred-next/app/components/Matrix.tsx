@@ -1,9 +1,18 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useAlfredStore } from '../store/useAlfredStore';
 
 export default function Matrix() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { matrixText, contextText } = useAlfredStore();
+  const matrixTextRef = useRef(matrixText);
+  const contextTextRef = useRef(contextText);
+
+  useEffect(() => {
+    matrixTextRef.current = matrixText;
+    contextTextRef.current = contextText;
+  }, [matrixText, contextText]);
 
   useEffect(() => {
     const c = canvasRef.current;
@@ -16,15 +25,18 @@ export default function Matrix() {
     let letterSpacing = 20;
     let count = 0, count2 = 0;
 
-    const textArray = [
-      'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-      'I', 'J', 'K', 'L', 'M', 'N', 'Ñ', 'O',
-      'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-      'X', 'Y', 'Z', '1', '2', '3', '4', '5',
-      '6', '7', '8', '9', '0', '#', '%', '&',
-      '@', '<', '>', '^', ';', '.', '|', '-',
-      '_', '°', '¬', '+', '*', '/'
-    ];
+    const toCamelCase = (str: string) => {
+      return str
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+        .replace(/[^a-zA-Z0-9]/g, '');
+    };
+
+    const getActiveText = () => {
+      const sourceText = matrixTextRef.current || contextTextRef.current;
+      if (!sourceText) return "ALFRED";
+      return toCamelCase(sourceText);
+    };
 
     let textColors = ['#00FF41', '#008F11', '#003B00', '#0D0208'];
     const allTextColors = [
@@ -41,6 +53,7 @@ export default function Matrix() {
     }, 10000);
 
     const textCreatedArray: any[] = [];
+    let nextCharIndex = 0;
     const r = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1) + min);
 
     const manageSize = () => {
@@ -52,12 +65,20 @@ export default function Matrix() {
     manageSize();
 
     const createText = () => {
+      const currentText = getActiveText();
+      const charIndex = nextCharIndex % currentText.length;
+      const letter = currentText[charIndex];
+      const maxCols = Math.floor(c.width / letterSpacing);
+      const x = (charIndex % maxCols) * letterSpacing;
+
       textCreatedArray.push({
-        letter: textArray[r(0, textArray.length - 1)],
-        x: Math.floor(r(0, c.width) / letterSpacing) * letterSpacing,
+        letter,
+        x,
         y: -20,
         color: textColors[0]
       });
+
+      nextCharIndex++;
     };
 
     let animationFrameId: number;

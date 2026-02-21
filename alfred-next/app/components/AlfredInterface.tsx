@@ -12,8 +12,10 @@ import {
 import { useAlfredSpeech } from '../hooks/useAlfredSpeech';
 import { AlfredStatus } from './AlfredStatus';
 import { AlfredCommandsList } from './AlfredCommandsList';
+import { useAlfredStore } from '../store/useAlfredStore';
 
 export default function AlfredInterface() {
+  const { setMatrixText, setContextText } = useAlfredStore();
   const [lastWordDisplay, setLastWordDisplay] = useState('');
   const [currentWord, setCurrentWord] = useState('');
   const [availableCommands] = useState<string[]>(Object.keys(commands));
@@ -26,6 +28,7 @@ export default function AlfredInterface() {
   const isSystemActiveRef = useRef(false);
   const isConversationDoneRef = useRef(true);
   const soundOfCoincidenceRef = useRef<HTMLAudioElement | null>(null);
+  const startListeningRef = useRef<() => void>(() => {});
 
   const updateProcessingState = useCallback((state: ProcessingState) => {
     setProcessingState(state);
@@ -35,7 +38,7 @@ export default function AlfredInterface() {
   const checkRestartListening = useCallback(() => {
     if (isConversationDoneRef.current && isSpeechDoneRef.current) {
       if (isSystemActiveRef.current) {
-        startListening();
+        startListeningRef.current();
       } else {
         updateProcessingState('paused');
       }
@@ -43,10 +46,14 @@ export default function AlfredInterface() {
   }, [updateProcessingState]);
 
   const onSilenceDetected = async () => {
+    if (!isConversationDoneRef.current || !isSpeechDoneRef.current || processingStateRef.current !== 'listening') return;
+    
     const fullText = (accumulatedTranscriptRef.current + transcriptBufferRef.current).trim();
     if (!fullText) return;
 
+    isConversationDoneRef.current = false;
     shouldListenRef.current = false;
+    stopListening();
     updateProcessingState('processing');
     setStatusMessage("Processing...");
     cancelSpeech();
@@ -55,17 +62,25 @@ export default function AlfredInterface() {
     const contextData = await contextRes.json();
     const currentContext = contextData.content;
 
-    isConversationDoneRef.current = false;
-    isSpeechDoneRef.current = true;
-
     // const needsPondering = await runPonderingAgent(fullText);
     // if (needsPondering) {
     //   updateProcessingState('pondering');
     //   await new Promise(resolve => setTimeout(resolve, 2500));
     // }
 
+    setMatrixText(''); // Reset at start of new interaction
     await runConversationAgent(fullText, currentContext, {
-      onWord: (fullResponse) => setLastWordDisplay(fullResponse),
+      onWord: (fullResponse) => {
+        setLastWordDisplay(fullResponse);
+        // If there are thoughts (common in some models), show the whole response
+        // Otherwise, if no thoughts are detected yet, it stays empty and Matrix shows context.md
+        const hasThoughts = fullResponse.includes('<thought>') || fullResponse.includes('</thought>') || fullResponse.includes('Thinking:');
+        if (hasThoughts) {
+          setMatrixText(fullResponse);
+        } else {
+          setMatrixText('');
+        }
+      },
       onSentence: (sentence) => speakChunk(sentence, false),
       onComplete: (sentence) => speakChunk(sentence, true, checkRestartListening),
       onError: (err) => {
@@ -87,7 +102,9 @@ export default function AlfredInterface() {
           }
         }
       }),
-      runContextManager(fullText, currentContext)
+      runContextManager(fullText, currentContext).then(newCtx => {
+        setContextText(newCtx);
+      })
     ]);
 
     isConversationDoneRef.current = true;
@@ -113,12 +130,27 @@ export default function AlfredInterface() {
   });
 
   useEffect(() => {
+    startListeningRef.current = startListening;
+  }, [startListening]);
+
+  useEffect(() => {
+    const fetchContext = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/context/raw');
+        const data = await res.json();
+        setContextText(data.content);
+      } catch (err) {
+        console.error("Failed to fetch context", err);
+      }
+    };
+    fetchContext();
+
     soundOfCoincidenceRef.current = new Audio('/mp3/coincidence.mp3');
     setIsReady(true);
     return () => {
       stopListening();
     };
-  }, [stopListening]);
+  }, [stopListening, setContextText]);
 
   const handleStartManual = () => {
     isSystemActiveRef.current = true;
@@ -135,7 +167,9 @@ export default function AlfredInterface() {
       cancelSpeech();
     } else {
       isSystemActiveRef.current = true;
-      startListening();
+      if (isConversationDoneRef.current && isSpeechDoneRef.current) {
+        startListening();
+      }
     }
   };
 
