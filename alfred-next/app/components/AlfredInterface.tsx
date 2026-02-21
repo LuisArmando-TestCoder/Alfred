@@ -169,15 +169,13 @@ export default function AlfredInterface() {
       }
   };
 
-  const askOllama = async (prompt: string, actionResult: string | null, availableCommands: string[]) => {
+  const runConversationAgent = async (prompt: string) => {
+    // Conversational Agent (Talks back)
     setProcessingState('processing');
     try {
-        const systemContext = `Context:\n- Action Taken: ${actionResult || 'None'}`;
         const fullPrompt = `
         User input:
         "${prompt}"
-        
-        ${systemContext}
         
         Instructions:
         • Respond in a minimal, formal British butler tone.
@@ -186,16 +184,15 @@ export default function AlfredInterface() {
         • Short answers only.
         • Do not prefix, suffix, explain, or mention character count.
         • Do not mention commands, functions, or that you are an AI.
-        • If the input is not a command, treat it as conversation.
-        • Never say "I don't have a command for that" or similar.
+        • Treat it as conversation.
         * Address the user as "Sir" No name.
         `;
-        // TALK DIRECTLY TO WINDOWS - Bypasses macOS Deno Sandbox
+        
         const res = await fetch('http://192.168.100.35:11434/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: "phi3", // "llama3.1:8b",
+                model: "phi3",
                 prompt: fullPrompt,
                 stream: true
             })
@@ -275,6 +272,57 @@ export default function AlfredInterface() {
       }
   };
 
+  const runCommandAgent = async (text: string) => {
+    try {
+        const commandList = Object.keys(commands);
+        const prompt = `
+        You are a command parser.
+        User said: "${text}"
+        Available commands:
+        ${commandList.join('\n')}
+        
+        Instructions:
+        1. Return the exact command string from the list that best matches the user's intent.
+        2. If NO command matches, return 'NONE'.
+        3. Output ONLY the command or 'NONE'. No other text.
+        `;
+        
+        const res = await fetch('http://192.168.100.35:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              model: "phi3", 
+              prompt: prompt,
+              stream: false,
+              options: { temperature: 0 }
+          })
+        });
+        
+        if (!res.ok) return;
+        
+        const json = await res.json();
+        const response = json.response.trim();
+        console.log("Command Agent Response:", response);
+        
+        const matchedKey = commandList.find(key => response.includes(key));
+        
+        if (matchedKey) {
+            console.log("Matched Command:", matchedKey);
+            setCurrentWord(matchedKey);
+            if (soundOfCoincidenceRef.current) {
+                soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
+            }
+            
+            const command = commands[matchedKey];
+            const msg = await command.action();
+            
+            if (msg) speak(msg);
+        }
+    } catch (err) {
+        console.error("Command Agent failed", err);
+    }
+  };
+
   const handleSilenceDetected = async () => {
       const fullText = (accumulatedTranscriptRef.current + transcriptBufferRef.current).trim();
       if (!fullText) {
@@ -284,67 +332,15 @@ export default function AlfredInterface() {
       console.log("Silence detected. Processing:", fullText);
       
       // Stop listening to process
-      shouldListenRef.current = false; // Prevent auto-restart by onend immediate loop
+      shouldListenRef.current = false; 
       if (recognitionRef.current) recognitionRef.current.stop();
       
       setProcessingState('processing');
       setStatusMessage("Processing...");
 
-      try {
-          const commandList = Object.keys(commands);
-          const prompt = `
-          You are a command parser.
-          User said: "${fullText}"
-          Available commands:
-          ${commandList.join('\n')}
-          
-          Instructions:
-          1. Select the command from the list that EXACTLY matches the user's intent.
-          2. Only return a command if the user explicitly requests that specific action.
-          3. If the user is just greeting, chatting, or asking a general question not related to the commands, reply with 'NONE'.
-          4. Do not guess. If unsure, reply 'NONE'.
-          5. Reply with the exact command string from the list, or 'NONE'.
-          `;
-          
-          // Silent LLM Request
-          const res = await fetch('http://192.168.100.35:11434/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "phi3", 
-                prompt: prompt,
-                stream: false
-            })
-          });
-          
-          if (!res.ok) throw new Error("Silent LLM request failed");
-          
-          const json = await res.json();
-          const response = json.response;
-          console.log("Silent LLM Response:", response);
-          
-          const matchedKey = commandList.find(key => response.includes(key));
-          
-          if (matchedKey) {
-              console.log("Matched Command:", matchedKey);
-              setCurrentWord(matchedKey);
-              if (soundOfCoincidenceRef.current) {
-                  soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
-              }
-              
-              const command = commands[matchedKey];
-              const msg = await command.action();
-              
-              speak(msg || "Command executed.");
-          } else {
-              // Fallback to conversation
-              await askOllama(fullText, null, commandList);
-          }
-
-      } catch (err) {
-          console.error("Error in handleSilenceDetected", err);
-          speak("I encountered an error.");
-      }
+      // Synchronous (Parallel) Execution
+      runCommandAgent(fullText);
+      runConversationAgent(fullText);
   };
 
   useEffect(() => {
