@@ -8,3 +8,4 @@ animeInterestLevel:"interested yes"
 hobbySkatingWithRollerSkates:true
 readingAndWritingBothStoriesAndPoetry:true
 fanOfKoreaManga:true
+lastAction:"open quicker.js"
