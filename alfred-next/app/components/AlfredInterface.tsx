@@ -120,7 +120,6 @@ export default function AlfredInterface() {
   const speak = (text: string) => {
     if (!isSystemActiveRef.current) return;
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
       setProcessingState('speaking');
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch (e) { }
@@ -242,7 +241,6 @@ export default function AlfredInterface() {
         try { recognitionRef.current.stop(); } catch (e) { }
       }
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-      window.speechSynthesis.cancel();
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -361,6 +359,10 @@ export default function AlfredInterface() {
     if (recognitionRef.current) recognitionRef.current.stop();
     setProcessingState('processing');
     setStatusMessage("Processing...");
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
 
     // 0. Fetch Current Context once
     const contextRes = await fetch('http://localhost:8000/api/context/raw');
