@@ -39,5 +39,18 @@ export const commands: CommandsRecord = {
     action: async (color: string) => {
       return await fetchCommand(`paint/${color}`);
     }
+  },
+  'get_time': {
+    action: async () => {
+      return await fetchCommand('info/time');
+    }
+  },
+  'get_info': {
+    action: async (topic: string) => {
+      if (topic === 'browser' && typeof window !== 'undefined') {
+        return `Sir, you are using ${navigator.userAgent} with a screen resolution of ${window.screen.width}x${window.screen.height}.`;
+      }
+      return await fetchCommand(`info/${topic}`);
+    }
   }
 };

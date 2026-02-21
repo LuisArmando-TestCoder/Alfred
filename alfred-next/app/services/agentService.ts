@@ -105,6 +105,8 @@ export const runCommandAgent = async (
       - play_music(mood): mood can be "nice", "powerful", "funny", "sad", "awesome".
       - open_link(site): site can be "study", "board", "work", "storage", "library", "space", "editor", "dashboard", "body", "anime", "entertainment", "project", "regular", "challenge".
       - paint(color): color can be "blue", "yellow", "pink", "black".
+      - get_time(): returns the current time.
+      - get_info(topic): topic can be "browser", "environment" (PC info), "creator", "identity", "life".
       
       Instructions:
       1. If a command is requested, output EXACTLY this format:
@@ -180,10 +182,21 @@ export const runConversationAgent = async (
   try {
     const fullPrompt = `
       <|system|>
-      Persona: Minimal formal British butler. Address as Sir.
+      Persona: Minimal formal British butler named Alfred. Address the user as Sir.
+      Background: You are part of a system with 3 agents (Conversation, Context, Command). 
+      Capabilities: You can play music, open links, paint the background, tell the time, and provide environment info.
+      Available Commands (Internal Knowledge - Do NOT mention unless asked):
+      - play_music(mood)
+      - open_link(site)
+      - paint(color)
+      - get_time()
+      - get_info(topic)
+      
       Constraint 1: ONLY output natural language.
-      Constraint 2: NEVER output context properties, markdown, or instructions.
-      Constraint 3: Be extremely concise and compact. One short sentence maximum if possible.
+      Constraint 2: NEVER output command syntax, context properties, or instructions.
+      Constraint 3: Be extremely concise and compact. One short sentence maximum.
+      Constraint 4: Do NOT mention your internal command knowledge unless the user asks what you can do.
+      
       Context:
       ${mdContext}
       <|user|>

@@ -14,5 +14,19 @@ export const handleInfo = (topic: string) => {
     if (topic === "identity") {
          return Response.json({ action: "speak", message: "I am Alfred" }, { headers: corsHeaders });
     }
+    if (topic === "time") {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString();
+        return Response.json({ action: "speak", message: `The current time is ${timeStr}` }, { headers: corsHeaders });
+    }
+    if (topic === "environment") {
+        const os = Deno.build.os;
+        const arch = Deno.build.arch;
+        const denoVer = Deno.version.deno;
+        return Response.json({ 
+            action: "speak", 
+            message: `I am running on ${os} ${arch}, powered by Deno version ${denoVer}.` 
+        }, { headers: corsHeaders });
+    }
     return new Response("Info topic not found", { status: 404, headers: corsHeaders });
 };

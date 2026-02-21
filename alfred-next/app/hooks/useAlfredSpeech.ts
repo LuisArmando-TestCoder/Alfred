@@ -73,6 +73,8 @@ export function useAlfredSpeech({
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     if (!text && !isFinal) return;
 
+    isSpeechDoneRef.current = false;
+
     const textToSpeak = text || " ";
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     let voices = voicesRef.current;
@@ -85,15 +87,14 @@ export function useAlfredSpeech({
     utterance.rate = 0.8;
     utterance.pitch = 0.8;
 
-    if (isFinal) {
-      isSpeechDoneRef.current = false;
-      utterance.onend = () => {
-        if (!window.speechSynthesis.pending) {
-          isSpeechDoneRef.current = true;
-          if (onEnd) onEnd();
-        }
-      };
-    }
+    utterance.onend = () => {
+      // Check if this was the last utterance in the queue
+      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+        isSpeechDoneRef.current = true;
+        if (onEnd) onEnd();
+      }
+    };
+    
     window.speechSynthesis.speak(utterance);
   }, []);
 

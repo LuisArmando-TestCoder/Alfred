@@ -67,7 +67,7 @@ export default function AlfredInterface() {
     await runConversationAgent(fullText, currentContext, {
       onWord: (fullResponse) => setLastWordDisplay(fullResponse),
       onSentence: (sentence) => speakChunk(sentence, false),
-      onComplete: (sentence) => speakChunk(sentence, true),
+      onComplete: (sentence) => speakChunk(sentence, true, checkRestartListening),
       onError: (err) => {
         console.error("Conversation failed", err);
         speak("I could not reach the brain.");
@@ -81,7 +81,10 @@ export default function AlfredInterface() {
           if (soundOfCoincidenceRef.current) {
             soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
           }
-          await commands[command].action(...args);
+          const resultMsg = await commands[command].action(...args);
+          if (resultMsg) {
+            speak(resultMsg, checkRestartListening);
+          }
         }
       }),
       runContextManager(fullText, currentContext)
