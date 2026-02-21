@@ -4,6 +4,11 @@ import { handleLink } from "./controllers/links.ts";
 import { handleInfo } from "./controllers/info.ts";
 import { handlePaint } from "./controllers/paint.ts";
 import { handleContextRaw } from "./controllers/context.ts";
+import { commandManager } from "./controllers/commandManager.ts";
+import { cronManager } from "./controllers/cronManager.ts";
+
+// Initialize Cron Manager
+cronManager.initialize();
 
 Deno.serve({ port: 8000 }, async (req) => {
     if (req.method === "OPTIONS") {
@@ -31,6 +36,10 @@ Deno.serve({ port: 8000 }, async (req) => {
 
     if (path === "/api/context/raw") {
         return await handleContextRaw(req);
+    }
+
+    if (path === "/api/events") {
+        return commandManager.handleSSE(req);
     }
 
     return new Response("Not Found", { status: 404, headers: corsHeaders });

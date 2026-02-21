@@ -130,6 +130,42 @@ export default function AlfredInterface() {
   });
 
   useEffect(() => {
+    // Connect to SSE for server-pulsed commands (Cron jobs)
+    const eventSource = new EventSource('http://localhost:8000/api/events');
+    
+    eventSource.onmessage = async (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const { command, args } = data;
+        
+        console.log("Pulsed command received:", command, args);
+        
+        if (commands[command]) {
+          setCurrentWord(command);
+          if (soundOfCoincidenceRef.current) {
+            soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
+          }
+          const resultMsg = await commands[command].action(...args);
+          if (resultMsg) {
+            speak(resultMsg, checkRestartListening);
+          }
+        }
+      } catch (e) {
+        console.error("Error parsing pulsed command:", e);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("EventSource failed:", err);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [speak, checkRestartListening]);
+
+  useEffect(() => {
     startListeningRef.current = startListening;
   }, [startListening]);
 

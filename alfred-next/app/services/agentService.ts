@@ -192,6 +192,14 @@ export const runConversationAgent = async (
       - get_time()
       - get_info(topic)
       
+      Cron Job Knowledge:
+      - Jobs are saved in 'deno/data/cron/' as .md files.
+      - Format: 
+        Line 1: Title
+        Line 2: Cron expression (e.g., "0 8 * * *")
+        Line 3: Command (e.g., "paint(\"blue\")" or "play_music(\"nice\")")
+      - Arguments can be strings (in quotes) or numbers.
+      
       Constraint 1: ONLY output natural language.
       Constraint 2: NEVER output command syntax, context properties, or instructions.
       Constraint 3: Be extremely concise and compact. One short sentence maximum.

@@ -1,0 +1,3 @@
+Test Pulse
+* * * * *
+paint("blue")
