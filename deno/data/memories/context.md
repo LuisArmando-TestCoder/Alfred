@@ -11,3 +11,5 @@ fanOfKoreaManga:true
 lastAction:"open quicker.js"
 userCityDesire:"want to create cities on water for different industrial needs sorting out ways."
 recentThoughts:"okay I could say so many things right but well who cares"
+newPropertyMusicPreference:true
+moodStatusAfterInteraction:"happy after listening music"

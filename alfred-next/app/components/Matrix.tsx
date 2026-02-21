@@ -83,7 +83,7 @@ export default function Matrix() {
         }
         
         ctx.fillStyle = item.color;
-        ctx.font = `${letterSpacing + Math.random()}px Arial`;
+        ctx.font = `${letterSpacing}px Arial`;
         ctx.fillText(item.letter, item.x, item.y);
         
         if (item.y > c.height + letterSpacing) {
