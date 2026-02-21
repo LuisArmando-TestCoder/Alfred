@@ -211,19 +211,16 @@ export default function AlfredInterface() {
     isConversationDoneRef.current = false;
     try {
       const fullPrompt = `
+        <|system|>
+        Persona: Minimal formal British butler. Address as Sir.
+        Constraint 1: ONLY output natural language.
+        Constraint 2: NEVER output context properties, markdown, or instructions.
+        Constraint 3: Stay compact.
         Context:
         ${mdContext}
-
-        User input:
-        "${prompt}"
-        
-        Instructions:
-        • Respond in a minimal, direct, formal British butler tone.
-        • Address the user as "Sir".
-        • Keep it compact.
-        • Do NOT reveal or mention the internal context properties unless explicitly asked to do so.
-        • ONLY provide the natural language response meant to be spoken.
-        • NEVER output internal context updates, markdown blocks, or key-value pairs.
+        <|user|>
+        ${prompt}
+        <|assistant|>
         `;
 
       const res = await fetch('http://192.168.100.35:11434/api/generate', {
@@ -233,7 +230,7 @@ export default function AlfredInterface() {
           model: "phi3",
           prompt: fullPrompt,
           stream: true,
-          options: { temperature: 0.3 }
+          options: { temperature: 0.1, stop: ["<|end|>", "<|user|>", "###"] }
         })
       });
 
