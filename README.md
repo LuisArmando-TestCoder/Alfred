@@ -1,4 +1,4 @@
-This project has a deno server, a browser LLM voice CLI interface and a Ollama instance served on another PC on the same WLAN
+This project has a deno server, a browser LLM voice CLI interface and an Ollama instance served on another PC on the same WLAN
 
 To avoid OpenClaw AI Agents' security risks, instead of clawd bot shaping commands, writing code, CRON jobs, etc; the commands are already created and triggered based on user messages, these commands live on the server, on deno, the LLMs are triggereed from the browser for its firewall bypassing features, there are 3 simultaneous LLMs requests being executed at the same time: 
 
