@@ -58,12 +58,6 @@ export default function AlfredInterface() {
     isConversationDoneRef.current = false;
     isSpeechDoneRef.current = true;
 
-    const needsPondering = await runPonderingAgent(fullText);
-    if (needsPondering) {
-      updateProcessingState('pondering');
-      await new Promise(resolve => setTimeout(resolve, 2500));
-    }
-
     await runConversationAgent(fullText, currentContext, {
       onWord: (fullResponse) => setLastWordDisplay(fullResponse),
       onSentence: (sentence) => speakChunk(sentence, false),
