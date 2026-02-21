@@ -329,8 +329,6 @@ export default function AlfredInterface() {
               }
               if (json.done) {
                 speakChunk(sentenceBuffer, true);
-                isConversationDoneRef.current = true;
-                checkRestartListening();
               }
             } catch (e) {
               console.error("JSON Parse error", e);
@@ -341,8 +339,6 @@ export default function AlfredInterface() {
     } catch (err) {
       console.error("Agent flow failed:", err);
       speak("I could not reach the brain.");
-      isConversationDoneRef.current = true;
-      checkRestartListening();
     }
   };
 
@@ -418,13 +414,20 @@ export default function AlfredInterface() {
     const contextData = await contextRes.json();
     const currentContext = contextData.content;
 
-    // Simultaneous Execution of 3 agents
+    // Sequence: 1. Conversation Agent (Streaming) -> 2. Command & Context (Simultaneous)
     isConversationDoneRef.current = false;
     isSpeechDoneRef.current = true; // Initial state for this cycle
 
-    runCommandAgent(fullText, currentContext);
-    runContextManager(fullText, currentContext);
-    runConversationAgent(fullText, currentContext);
+    await runConversationAgent(fullText, currentContext);
+    
+    // Now run the functional agents simultaneously
+    await Promise.all([
+      runCommandAgent(fullText, currentContext),
+      runContextManager(fullText, currentContext)
+    ]);
+
+    isConversationDoneRef.current = true;
+    checkRestartListening();
   };
 
   useEffect(() => {

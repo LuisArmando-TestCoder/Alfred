@@ -17,5 +17,5 @@ userMoodReflectionOnLifeQuestion:"music makes us feel alive, it's a universal la
 whatDoYouThinkAboutIDonKnow:"requestOpinion"
 newProperty:fascinationWithMusic
 lastActionPerformedAfterInteraction:"listen music"
-userNeedsToLearnMoreOnStarNutrients:"true"
+userNeedsToLearnMoreOnStarNutrients:true
 starNutrientInfoRequested:"neutron star, neutrality in nutrition unclear but fascinating subject for further research."
