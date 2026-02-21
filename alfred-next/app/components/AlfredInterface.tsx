@@ -354,9 +354,9 @@ export default function AlfredInterface() {
         ${commandList.join('\n')}
         
         Instructions:
-        1. Decide which command to trigger from the list.
+        1. Decide which command to trigger from the list, if and only if what the user said is to execute one of them.
         2. If the user message does NOT explicitly ask for one of the available commands, you MUST output ONLY dots: .......
-        3. A command is only explicitly asked for if the user uses a clear verb at the beginning (e.g., "Play...", "Open...", "Paint...").
+        3. A command is only explicitly asked for if the user starts with clear verbs at the beginning (e.g., "Play...", "Open...", "Paint...", verbs, not nouns).
         4. Do NOT explain your choice. Do NOT talk.
         5. If a command matches, return its exact name from the list.
         6. If NO command is requested, output ONLY dots: .......

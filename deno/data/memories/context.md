@@ -19,3 +19,5 @@ newProperty:fascinationWithMusic
 lastActionPerformedAfterInteraction:"listen music"
 userNeedsToLearnMoreOnStarNutrients:true
 starNutrientInfoRequested:"neutron star, neutrality in nutrition unclear but fascinating subject for further research."
+newPropertyConversationTopic:interestInNeutronStars
+lastActionPerformedDuringInteraction:"initiated conversation about neutron stars"
