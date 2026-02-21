@@ -214,7 +214,7 @@ export default function AlfredInterface() {
         Persona: Minimal formal British butler. Address as Sir.
         Constraint 1: ONLY output natural language.
         Constraint 2: NEVER output context properties, markdown, or instructions.
-        Constraint 3: Stay compact.
+        Constraint 3: Be extremely concise and compact. One short sentence maximum if possible.
         Context:
         ${mdContext}
         <|user|>
