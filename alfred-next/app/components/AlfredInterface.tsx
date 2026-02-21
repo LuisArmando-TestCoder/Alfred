@@ -9,11 +9,12 @@ declare global {
   }
 }
 
-type ProcessingState = 'idle' | 'listening' | 'processing' | 'speaking';
+type ProcessingState = 'idle' | 'listening' | 'processing' | 'speaking' | 'paused';
 
 export default function AlfredInterface() {
-  const [lastWordDisplay, setLastWordDisplay] = useState('Click first');
-  const [currentWord, setCurrentWord] = useState('Click first');
+  const [lastWordDisplay, setLastWordDisplay] = useState('');
+  const [currentWord, setCurrentWord] = useState('');
+  const [availableCommands, setAvailableCommands] = useState<string[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [processingState, setProcessingState] = useState<ProcessingState>('idle');
   const [statusMessage, setStatusMessage] = useState('');
@@ -22,10 +23,12 @@ export default function AlfredInterface() {
   const soundOfCoincidenceRef = useRef<HTMLAudioElement | null>(null);
   
   const shouldListenRef = useRef(false);
+  const isSystemActiveRef = useRef(false);
   const retryCountRef = useRef(0);
   const isNetworkErrorRef = useRef(false);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const transcriptBufferRef = useRef('');
+  const accumulatedTranscriptRef = useRef('');
   
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const [diagnostics, setDiagnostics] = useState<any>(null);
@@ -88,6 +91,8 @@ export default function AlfredInterface() {
   };
 
   const speak = (text: string) => {
+    if (!isSystemActiveRef.current) return;
+
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
 
@@ -115,7 +120,11 @@ export default function AlfredInterface() {
       
       utterance.onend = () => {
           // Resume listening after speaking
-          startListening();
+          if (isSystemActiveRef.current) {
+              startListening();
+          } else {
+              setProcessingState('paused');
+          }
       };
 
       window.speechSynthesis.speak(utterance);
@@ -123,6 +132,8 @@ export default function AlfredInterface() {
   };
 
   const speakChunk = (text: string, isFinal: boolean = false) => {
+      if (!isSystemActiveRef.current) return;
+
       if ('speechSynthesis' in window) {
           // If text is empty and not final, do nothing
           if (!text && !isFinal) return;
@@ -145,7 +156,11 @@ export default function AlfredInterface() {
               utterance.onend = () => {
                   // Only restart listening if we are done with all chunks (queue empty)
                   if (!window.speechSynthesis.pending) {
-                      startListening();
+                      if (isSystemActiveRef.current) {
+                          startListening();
+                      } else {
+                          setProcessingState('paused');
+                      }
                   }
               };
           }
@@ -170,6 +185,9 @@ export default function AlfredInterface() {
         • Avoid redundancy and filler.
         • Short answers only.
         • Do not prefix, suffix, explain, or mention character count.
+        • Do not mention commands, functions, or that you are an AI.
+        • If the input is not a command, treat it as conversation.
+        • Never say "I don't have a command for that" or similar.
         * Address the user as "Sir" No name.
         `;
         // TALK DIRECTLY TO WINDOWS - Bypasses macOS Deno Sandbox
@@ -248,6 +266,7 @@ export default function AlfredInterface() {
       setProcessingState('listening');
       setStatusMessage("Listening...");
       transcriptBufferRef.current = '';
+      accumulatedTranscriptRef.current = '';
       
       if (recognitionRef.current) {
           try { recognitionRef.current.start(); } catch(e) {
@@ -257,12 +276,12 @@ export default function AlfredInterface() {
   };
 
   const handleSilenceDetected = async () => {
-      const text = transcriptBufferRef.current.trim();
-      if (!text) {
+      const fullText = (accumulatedTranscriptRef.current + transcriptBufferRef.current).trim();
+      if (!fullText) {
           return; 
       }
       
-      console.log("Silence detected. Processing:", text);
+      console.log("Silence detected. Processing:", fullText);
       
       // Stop listening to process
       shouldListenRef.current = false; // Prevent auto-restart by onend immediate loop
@@ -275,13 +294,16 @@ export default function AlfredInterface() {
           const commandList = Object.keys(commands);
           const prompt = `
           You are a command parser.
-          User said: "${text}"
+          User said: "${fullText}"
           Available commands:
           ${commandList.join('\n')}
           
-          Select the command that the user somewhat mentioned or intended.
-          Reply with the exact command string from the list.
-          If no command matches, reply with 'NONE'.
+          Instructions:
+          1. Select the command from the list that EXACTLY matches the user's intent.
+          2. Only return a command if the user explicitly requests that specific action.
+          3. If the user is just greeting, chatting, or asking a general question not related to the commands, reply with 'NONE'.
+          4. Do not guess. If unsure, reply 'NONE'.
+          5. Reply with the exact command string from the list, or 'NONE'.
           `;
           
           // Silent LLM Request
@@ -316,7 +338,7 @@ export default function AlfredInterface() {
               speak(msg || "Command executed.");
           } else {
               // Fallback to conversation
-              await askOllama(text, null, commandList);
+              await askOllama(fullText, null, commandList);
           }
 
       } catch (err) {
@@ -368,7 +390,7 @@ export default function AlfredInterface() {
         }
         
         transcriptBufferRef.current = t;
-        setLastWordDisplay(t);
+        setLastWordDisplay(accumulatedTranscriptRef.current + t);
         setProcessingState('listening');
         
         // Reset silence timer (debounce 2s)
@@ -403,6 +425,8 @@ export default function AlfredInterface() {
         // If we are supposed to be listening and not processing/speaking
         if (shouldListenRef.current && processingState === 'listening') {
              // Restart
+             accumulatedTranscriptRef.current += transcriptBufferRef.current + ' ';
+             transcriptBufferRef.current = '';
              try { recognition.start(); } catch(e) {}
         }
     };
@@ -416,6 +440,7 @@ export default function AlfredInterface() {
          voicesRef.current = window.speechSynthesis.getVoices();
     }
 
+    setAvailableCommands(Object.keys(commands));
     setIsReady(true);
 
     return () => {
@@ -429,6 +454,7 @@ export default function AlfredInterface() {
 
   const handleStartManual = () => {
       shouldListenRef.current = true;
+      isSystemActiveRef.current = true;
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(() => {
             startListening();
@@ -439,11 +465,31 @@ export default function AlfredInterface() {
         });
   };
 
+  const toggleListening = () => {
+    if (isSystemActiveRef.current) {
+      // Pause
+      isSystemActiveRef.current = false;
+      shouldListenRef.current = false;
+      setProcessingState('paused');
+      setStatusMessage("Paused");
+      if (recognitionRef.current) {
+          try { recognitionRef.current.stop(); } catch(e) {}
+      }
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      window.speechSynthesis.cancel();
+    } else {
+      // Resume
+      isSystemActiveRef.current = true;
+      startListening();
+    }
+  };
+
   const getStateColor = () => {
       switch(processingState) {
           case 'listening': return 'text-green-500';
           case 'processing': return 'text-blue-500';
           case 'speaking': return 'text-purple-500';
+          case 'paused': return 'text-yellow-500';
           default: return 'text-gray-500';
       }
   };
@@ -482,8 +528,21 @@ export default function AlfredInterface() {
               
               <h1 className="text-6xl font-bold text-green-500 tracking-widest uppercase glow">{currentWord}</h1>
               
-              {/* Removed treeItems rendering */}
+              <ul className="flex flex-wrap justify-center gap-4 max-w-4xl max-h-60 overflow-y-auto px-4">
+                  {availableCommands.map((item) => (
+                      <li key={item} className="text-sm text-green-700 bg-black/50 px-2 py-1 border border-green-900 rounded hover:text-green-500 hover:border-green-500 transition-colors">
+                          {item}
+                      </li>
+                  ))}
+              </ul>
               
+              <button 
+                onClick={toggleListening}
+                className="mt-4 px-6 py-2 font-bold text-yellow-500 border border-yellow-500 rounded hover:bg-yellow-500 hover:text-black transition-colors"
+              >
+                {processingState === 'paused' ? 'RESUME' : 'PAUSE'}
+              </button>
+
               <button 
                 onClick={() => {
                     shouldListenRef.current = false;
