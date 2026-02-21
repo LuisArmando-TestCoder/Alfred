@@ -1,4 +1,4 @@
-import Cron from "https://deno.land/x/croner@v8.1.0/dist/croner.js";
+import Cron from "https://esm.sh/croner@8.1.0";
 import { commandManager } from "./commandManager.ts";
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
 import { fromFileUrl, dirname } from "https://deno.land/std@0.224.0/path/mod.ts";
@@ -28,7 +28,7 @@ class CronManager {
     private async loadAllJobs() {
         try {
             for await (const entry of Deno.readDir(this.cronFolder)) {
-                if (entry.isFile && entry.name.endsWith(".md")) {
+                if (entry.isFile && entry.name.endsWith(".md") && entry.name !== "README.md") {
                     await this.loadJobFile(entry.name);
                 }
             }
@@ -88,7 +88,7 @@ class CronManager {
             timeout = setTimeout(async () => {
                 for (const path of event.paths) {
                     const filename = path.split("/").pop();
-                    if (!filename || !filename.endsWith(".md")) continue;
+                    if (!filename || !filename.endsWith(".md") || filename === "README.md") continue;
 
                     if (event.kind === "create" || event.kind === "modify") {
                         console.log(`File ${filename} changed, reloading...`);

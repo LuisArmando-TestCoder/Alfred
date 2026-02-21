@@ -2,7 +2,7 @@ import { CommandsRecord } from "../types/alfred";
 
 export const runPonderingAgent = async (prompt: string) => {
   try {
-    const res = await fetch('http://192.168.100.35:11434/api/generate', {
+    const res = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -54,7 +54,7 @@ export const runContextManager = async (prompt: string, currentContext: string) 
         lastAction:requestMusic
         `;
 
-    const res = await fetch('http://192.168.100.35:11434/api/generate', {
+    const res = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -129,7 +129,7 @@ export const runCommandAgent = async (
       Output: .......
       `;
 
-    const res = await fetch('http://192.168.100.35:11434/api/generate', {
+    const res = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -212,7 +212,7 @@ export const runConversationAgent = async (
       <|assistant|>
       `;
 
-    const res = await fetch('http://192.168.100.35:11434/api/generate', {
+    const res = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
