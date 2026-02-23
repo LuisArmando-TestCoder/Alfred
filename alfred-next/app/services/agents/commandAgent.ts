@@ -50,7 +50,8 @@ export const runCommandAgent = async (
     });
 
     if (!res.ok || !res.body) {
-      console.error("[alfred-next/app/services/agents/commandAgent.ts] Ollama request failed.");
+      const errorText = await res.text().catch(() => "No error details");
+      console.error(`[alfred-next/app/services/agents/commandAgent.ts] Ollama request failed (${res.status}): ${errorText}`);
       return;
     }
 
@@ -58,12 +59,16 @@ export const runCommandAgent = async (
     const decoder = new TextDecoder();
     let response = '';
     let tokens = 0;
+    let lineBuffer = '';
 
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      
+      lineBuffer += decoder.decode(value, { stream: true });
+      const lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop() || '';
+
       for (const line of lines) {
         if (!line.trim()) continue;
         try {

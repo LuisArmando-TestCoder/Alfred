@@ -15,7 +15,7 @@ export const runContextManager = async (prompt: string, currentContext: string, 
         5. Return the ENTIRE updated context.
         
         Current Context:
-        \${currentContext}
+        ${currentContext}
 
         Example of Context Update:
         If the user says "Remember that I have a meeting at 3pm", you might update the context with:
@@ -33,10 +33,10 @@ export const runContextManager = async (prompt: string, currentContext: string, 
         emotionalState:sad
         foodPreference:italian
         
-        User said: "\${prompt}"
+        User said: "${prompt}"
         `;
 
-    const res = await fetch(`\${getOllamaUrl()}/api/generate`, {
+    const res = await fetch(`${getOllamaUrl()}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -47,18 +47,25 @@ export const runContextManager = async (prompt: string, currentContext: string, 
       })
     });
 
-    if (!res.ok || !res.body) throw new Error("Context Manager stream failed");
+    if (!res.ok || !res.body) {
+      const errorText = await res.text().catch(() => "No error details");
+      throw new Error(`Context Manager stream failed (${res.status}): ${errorText}`);
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let newContext = '';
     let tokens = 0;
+    let lineBuffer = '';
 
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      
+      lineBuffer += decoder.decode(value, { stream: true });
+      const lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop() || '';
+
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
@@ -68,7 +75,9 @@ export const runContextManager = async (prompt: string, currentContext: string, 
             tokens++;
             onToken(tokens);
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn("[alfred-next/app/services/agents/contextAgent.ts] Failed to parse JSON line:", line);
+        }
       }
     }
 

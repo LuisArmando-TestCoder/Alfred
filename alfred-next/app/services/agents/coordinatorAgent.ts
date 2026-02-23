@@ -30,18 +30,25 @@ export const runCoordinatorAgent = async (prompt: string, onToken: (count: numbe
       })
     });
 
-    if (!res.ok || !res.body) throw new Error("Coordinator stream failed");
+    if (!res.ok || !res.body) {
+      const errorText = await res.text().catch(() => "No error details");
+      throw new Error(`Coordinator stream failed (${res.status}): ${errorText}`);
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let fullResponse = '';
     let tokens = 0;
+    let lineBuffer = '';
 
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      
+      lineBuffer += decoder.decode(value, { stream: true });
+      const lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop() || '';
+
       for (const line of lines) {
         if (!line.trim()) continue;
         try {

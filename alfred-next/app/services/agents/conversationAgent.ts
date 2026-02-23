@@ -60,6 +60,7 @@ export const runConversationAgent = async (
     let lineBuffer = '';
     let lastProcessedSpokableIndex = 0;
     let seenAnyDashes = false;
+    let tokens = 0;
 
     console.log("[alfred-next/app/services/agents/conversationAgent.ts] Starting stream read.");
     while (!done) {
@@ -72,7 +73,6 @@ export const runConversationAgent = async (
         const lines = lineBuffer.split('\n');
         lineBuffer = lines.pop() || '';
 
-        let tokens = 0;
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
