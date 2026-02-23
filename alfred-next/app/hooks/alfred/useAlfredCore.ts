@@ -37,6 +37,7 @@ const initialState: AlfredCoreState = {
   },
   lastWordDisplay: '',
   currentWord: '',
+  memoryDiff: '',
 };
 
 function alfredCoreReducer(
@@ -82,6 +83,8 @@ function alfredCoreReducer(
       return { ...state, lastWordDisplay: action.payload };
     case 'SET_CURRENT_WORD':
       return { ...state, currentWord: action.payload };
+    case 'SET_MEMORY_DIFF':
+      return { ...state, memoryDiff: action.payload };
     default:
       return state;
   }
@@ -168,6 +171,10 @@ export function useAlfredCore() {
     dispatch({ type: 'SET_CURRENT_WORD', payload: word });
   }, []);
 
+  const setMemoryDiff = useCallback((diff: string) => {
+    dispatch({ type: 'SET_MEMORY_DIFF', payload: diff });
+  }, []);
+
   const { readmeText } = useAlfredKnowledge();
 
   const speech = useAlfredSpeech({
@@ -247,6 +254,7 @@ export function useAlfredCore() {
     setContextText,
     setLastWordDisplay,
     setCurrentWord,
+    setMemoryDiff,
     speak,
     speakChunk,
     cancelSpeech,

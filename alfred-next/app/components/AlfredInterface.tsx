@@ -16,7 +16,8 @@ export default function AlfredInterface() {
     agentStatus, 
     agentTokens,
     lastWordDisplay, 
-    currentWord 
+    currentWord,
+    memoryDiff
   } = state;
   const { toggleListening, handleStartManual } = actions;
 
@@ -38,6 +39,7 @@ export default function AlfredInterface() {
             statusMessage={statusMessage} 
             agentStatus={agentStatus}
             agentTokens={agentTokens}
+            memoryDiff={memoryDiff}
           />
           
           <span className="text-2xl text-green-400 opacity-80 max-w-3xl px-4">{lastWordDisplay}</span>

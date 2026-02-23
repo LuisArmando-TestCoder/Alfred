@@ -20,9 +20,10 @@ interface AlfredStatusProps {
     command: number;
     context: number;
   };
+  memoryDiff?: string;
 }
 
-export function AlfredStatus({ processingState, statusMessage, agentStatus, agentTokens }: AlfredStatusProps) {
+export function AlfredStatus({ processingState, statusMessage, agentStatus, agentTokens, memoryDiff }: AlfredStatusProps) {
   const getStateColor = () => {
     switch (processingState) {
       case 'listening': return 'text-green-500';
@@ -91,6 +92,13 @@ export function AlfredStatus({ processingState, statusMessage, agentStatus, agen
         <span className="text-sm text-yellow-400/80 italic font-light tracking-wide max-w-md text-center">
           {statusMessage}
         </span>
+      )}
+
+      {memoryDiff && (
+        <div className="mt-2 px-4 py-1.5 rounded bg-blue-900/20 border border-blue-500/30 animate-pulse">
+          <span className="text-[11px] font-mono text-blue-400 font-bold uppercase tracking-wider mr-2">Memory Updated:</span>
+          <span className="text-[11px] font-mono text-blue-300 italic">{memoryDiff}</span>
+        </div>
       )}
     </div>
   );

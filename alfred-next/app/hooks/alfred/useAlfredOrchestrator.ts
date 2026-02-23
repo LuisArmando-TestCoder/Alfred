@@ -28,6 +28,7 @@ interface UseAlfredOrchestratorProps {
   setContextText: (text: string) => void;
   setLastWordDisplay: (text: string) => void;
   setCurrentWord: (word: string) => void;
+  setMemoryDiff: (diff: string) => void;
   
   // Speech
   speak: (text: string, onEnd?: () => void) => void;
@@ -57,6 +58,7 @@ export function useAlfredOrchestrator({
   setContextText,
   setLastWordDisplay,
   setCurrentWord,
+  setMemoryDiff,
   speak,
   speakChunk,
   cancelSpeech,
@@ -220,8 +222,10 @@ export function useAlfredOrchestrator({
 
     const finalMemoryResult = memoryResult as { content: string; diff: string } | null;
     if (finalMemoryResult && finalMemoryResult.diff && finalMemoryResult.diff !== "No significant changes.") {
-      console.log(`[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Announcing Memory Saved: ${finalMemoryResult.diff}`);
-      speak(`Memory saved. ${finalMemoryResult.diff}`);
+      console.log(`[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Displaying Memory Saved: ${finalMemoryResult.diff}`);
+      setMemoryDiff(finalMemoryResult.diff);
+    } else {
+      setMemoryDiff("");
     }
 
     console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Final Synchronization: Setting conversation done and checking for listen restart.");
@@ -242,6 +246,7 @@ export function useAlfredOrchestrator({
     setContextText,
     setLastWordDisplay,
     setCurrentWord,
+    setMemoryDiff,
     speak,
     speakChunk,
     cancelSpeech,

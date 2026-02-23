@@ -44,6 +44,7 @@ export interface AlfredCoreState {
   };
   lastWordDisplay: string;
   currentWord: string;
+  memoryDiff: string;
 }
 
 export type AlfredCoreAction =
@@ -54,4 +55,5 @@ export type AlfredCoreAction =
   | { type: 'SET_AGENT_TOKENS'; payload: Partial<AlfredCoreState['agentTokens']> }
   | { type: 'RESET_AGENT_STATUS' }
   | { type: 'SET_LAST_WORD_DISPLAY'; payload: string }
-  | { type: 'SET_CURRENT_WORD'; payload: string };
+  | { type: 'SET_CURRENT_WORD'; payload: string }
+  | { type: 'SET_MEMORY_DIFF'; payload: string };
