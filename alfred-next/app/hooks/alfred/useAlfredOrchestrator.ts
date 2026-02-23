@@ -122,7 +122,7 @@ export function useAlfredOrchestrator({
     // 1. Prepare Background Agents (Command and Context)
     console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Phase 2: Launching Background Agents in parallel...");
     const backgroundTasks: Promise<void>[] = [];
-    let commandResult: { command: string; args: (string | number)[] } | null = null;
+    let commandResults: { command: string; args: (string | number)[] }[] = [];
     let memoryResult: { content: string; diff: string } | null = null;
 
     if (coordinatorResult.commands) {
@@ -132,7 +132,7 @@ export function useAlfredOrchestrator({
         try {
           await runCommandAgent(fullText, currentContext, commands, (match) => {
             console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Command Agent returned a match:", match);
-            commandResult = match as { command: string; args: (string | number)[] };
+            commandResults.push(match as { command: string; args: (string | number)[] });
           }, (searchState) => {
             updateAgentStatus('commandSearch', searchState);
           }, (t) => updateAgentTokens('command', t), (st) => updateAgentTokens('commandSearch', st));
@@ -202,10 +202,11 @@ export function useAlfredOrchestrator({
 
     // 4. Handle sequential results of background tasks after conversation
     console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Phase 4: Enacting effects sequentially...");
-    const finalCommandResult = commandResult as { command: string; args: (string | number)[] } | null;
-    if (finalCommandResult) {
-      const { command, args } = finalCommandResult;
+    
+    for (const match of commandResults) {
+      const { command, args } = match;
       if (commands[command]) {
+        console.log(`[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Executing command effect: ${command}`);
         setCurrentWord(command);
         if (soundOfCoincidenceRef.current) {
           soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));

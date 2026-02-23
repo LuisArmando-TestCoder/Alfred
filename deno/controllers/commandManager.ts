@@ -78,14 +78,27 @@ class CommandManager {
         }
     }
 
-    getAvailableCommands() {
-        return [
+    getAvailableCommands(search?: string) {
+        const allCommands = [
             "play_music(mood)",
             "open_link(site)",
             "paint(color)",
             "get_time()",
             "get_info(topic)"
         ];
+
+        if (!search) return allCommands;
+
+        const keywords = search.split(',')
+            .map(k => k.trim().toLowerCase())
+            .filter(k => k.length > 0);
+
+        if (keywords.length === 0) return allCommands;
+
+        return allCommands.filter(cmd => {
+            const normalizedCmd = cmd.toLowerCase();
+            return keywords.some(kw => normalizedCmd.includes(kw));
+        });
     }
 
     handleSSE(req: Request) {

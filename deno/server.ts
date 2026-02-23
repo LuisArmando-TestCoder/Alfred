@@ -44,7 +44,8 @@ Deno.serve({ port: 8000 }, async (req) => {
         return commandManager.handleSSE(req);
     } else if (path === "/api/commands" || path === "/api/commands/") {
         if (req.method === "GET") {
-            const list = commandManager.getAvailableCommands();
+            const search = url.searchParams.get("search") || undefined;
+            const list = commandManager.getAvailableCommands(search);
             return new Response(JSON.stringify({ commands: list }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
