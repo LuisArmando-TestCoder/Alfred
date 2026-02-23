@@ -18,6 +18,11 @@ export const runCoordinatorAgent = async (prompt: string, onToken: (count: numbe
       - Example Output:
       ---{"commands": false, "memory": true, "conversational": true}---
 
+      Constraints:
+      - Always respond with the JSON format specified above, even if all values are false.
+      - Do not include any text, explanations, or reasoning outside of the JSON object.
+      - Base your analysis solely on the content of the user's message.
+
       - User input:
       User message: "${prompt}"
       

@@ -134,7 +134,7 @@ export function useAlfredOrchestrator({
             console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Command Agent returned a match:", match);
             commandResult = match as { command: string; args: (string | number)[] };
           }, (searchState) => {
-            updateAgentStatus('commandSearch', mState);
+            updateAgentStatus('commandSearch', searchState);
           }, (t) => updateAgentTokens('command', t), (st) => updateAgentTokens('commandSearch', st));
           updateAgentStatus('command', 'success');
         } catch (err) {
