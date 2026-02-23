@@ -1,5 +1,6 @@
 import { CommandsRecord, AgentState } from "../../types/alfred";
 import { getOllamaUrl, getBackendUrl } from "./utils";
+import { runSearchAgent } from "./searchAgent";
 
 export const runCommandAgent = async (
   prompt: string, 
@@ -12,50 +13,22 @@ export const runCommandAgent = async (
 ) => {
   console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() start.");
   try {
-    // Step 1: Keyword Extraction (Search Agent Phase)
-    console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() Phase: Search Keywords.");
-    updateStatus('processing');
-    
-    const searchPrompt = `
-      <|system|>
-      You are a Search Keyword Generator. Extract 1 to 3 search keywords from the user's message that could help find relevant system commands.
-      Respond ONLY with a comma-separated list of keywords. No explanations.
-      
-      User Message: "${prompt}"
-      <|assistant|>
-    `;
-
-    const searchRes = await fetch(`${getOllamaUrl()}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: "phi3",
-        prompt: searchPrompt,
-        stream: false,
-        options: { temperature: 0 }
-      })
-    });
-
-    const searchDataRaw = await searchRes.json();
-    const keywords = searchDataRaw.response?.trim() || "";
-    console.log("[alfred-next/app/services/agents/commandAgent.ts] Generated keywords:", keywords);
-
-    // Step 2: Filtered Command Search
-    console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() Phase: Filtered Fetch.");
-    const commandsRes = await fetch(`${getBackendUrl()}/api/commands?search=${encodeURIComponent(keywords)}`);
-    const commandsData = await commandsRes.json();
-    const availableCommands = commandsData.commands || [];
-    console.log("[alfred-next/app/services/agents/commandAgent.ts] Available commands after filtering:", availableCommands);
-    
-    if (onSearchToken) onSearchToken(availableCommands.length);
-    updateStatus('success');
+    // Step 1: Trigger Search Agent (Delegated to searchAgent.ts)
+    console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() Triggering Search Agent.");
+    const availableCommands = await runSearchAgent(
+      prompt, 
+      (t) => onSearchToken?.(t), 
+      (s) => updateStatus(s) // Search agent updates the commandSearch state
+    );
 
     if (availableCommands.length === 0) {
-      console.log("[alfred-next/app/services/agents/commandAgent.ts] No relevant commands found via search.");
+      console.log("[alfred-next/app/services/agents/commandAgent.ts] No relevant commands found via Search Agent.");
       return;
     }
 
-    // Step 3: Multi-Command Identification
+    // Step 2: Multi-Command Identification
+    updateStatus('processing'); // Set command status back to processing for identification phase
+
     const cmdPrompt = `
       <|system|>
       OBJECTIVE:
