@@ -143,6 +143,19 @@ export function useAlfredCore() {
     [],
   );
 
+  const resetAgentTokens = useCallback(() => {
+    dispatch({
+      type: 'SET_AGENT_TOKENS',
+      payload: {
+        coordinator: 0,
+        commandSearch: 0,
+        conversation: 0,
+        command: 0,
+        context: 0,
+      },
+    });
+  }, []);
+
   const setStatusMessage = useCallback((message: string) => {
     dispatch({ type: 'SET_STATUS_MESSAGE', payload: message });
   }, []);
@@ -227,6 +240,7 @@ export function useAlfredCore() {
     updateProcessingState,
     updateAgentStatus,
     updateAgentTokens,
+    resetAgentTokens,
     setAgentStatus,
     setStatusMessage,
     setMatrixText,

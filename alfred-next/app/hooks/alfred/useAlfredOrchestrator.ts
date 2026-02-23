@@ -21,6 +21,7 @@ interface UseAlfredOrchestratorProps {
   updateProcessingState: (state: ProcessingState) => void;
   updateAgentStatus: (agent: 'coordinator' | 'commandSearch' | 'conversation' | 'command' | 'context', state: AgentState) => void;
   updateAgentTokens: (agent: 'coordinator' | 'commandSearch' | 'conversation' | 'command' | 'context', tokens: number) => void;
+  resetAgentTokens: () => void;
   setAgentStatus: (status: { coordinator: AgentState, commandSearch: AgentState, conversation: AgentState, command: AgentState, context: AgentState }) => void;
   setStatusMessage: (msg: string) => void;
   setMatrixText: (text: string) => void;
@@ -49,6 +50,7 @@ export function useAlfredOrchestrator({
   updateProcessingState,
   updateAgentStatus,
   updateAgentTokens,
+  resetAgentTokens,
   setAgentStatus,
   setStatusMessage,
   setMatrixText,
@@ -96,6 +98,7 @@ export function useAlfredOrchestrator({
       command: 'idle', 
       context: 'idle' 
     });
+    resetAgentTokens();
     updateProcessingState('processing');
     setStatusMessage("Processing...");
     cancelSpeech();
@@ -129,7 +132,7 @@ export function useAlfredOrchestrator({
             commandResult = match as { command: string; args: (string | number)[] };
           }, (searchState) => {
             updateAgentStatus('commandSearch', searchState);
-          }, (t) => updateAgentTokens('command', t));
+          }, (t) => updateAgentTokens('command', t), (st) => updateAgentTokens('commandSearch', st));
           updateAgentStatus('command', 'success');
         } catch (err) {
           updateAgentStatus('command', 'error');
@@ -231,6 +234,8 @@ export function useAlfredOrchestrator({
     processingStateRef,
     updateProcessingState,
     updateAgentStatus,
+    updateAgentTokens,
+    resetAgentTokens,
     setAgentStatus,
     setStatusMessage,
     setMatrixText,

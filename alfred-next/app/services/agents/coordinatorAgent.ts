@@ -4,19 +4,24 @@ export const runCoordinatorAgent = async (prompt: string, onToken: (count: numbe
   console.log("[alfred-next/app/services/agents/coordinatorAgent.ts] runCoordinatorAgent() start.");
   try {
     const coordPrompt = `
-      You are a Coordinator Agent. Analyze the user message and decide if we need to:
-      1. commands: true; if Execute a command (e.g., play music, open link, paint, etc.)
-      2. memory: true if Update memory (if the message contains new info about the user or context)
-      3. conversational: if Reply to the user (if it's a question, a greeting, or needs a verbal response)
-      
-      Output EXACTLY a JSON object wrapped in triple dashes:
-      ---{"commands": true or false, "memory":  true or false, "conversational":  true or false}---
-      
-      RULES:
-      - ONLY output the JSON inside dashes.
-      - NEVER explain yourself.
-      
+      <|system|>
+      - Objective:
+      Analyze the user's message and determine the necessary system actions. Set the following boolean keys:
+      1. "commands": true if the user wants to execute an action (e.g., play music, open a link, paint).
+      2. "memory": true if the message contains new personal information or context worth saving for future reference.
+      3. "conversational": true if the message requires a verbal response, greeting, or answer.
+
+      - Desired Format:
+      You must output exactly one JSON object wrapped in triple dashes. Do not provide explanations, thoughts, or any text outside the dashes.
+      ---{"commands": boolean, "memory": boolean, "conversational": boolean}---
+
+      - Example Output:
+      ---{"commands": false, "memory": true, "conversational": true}---
+
+      - User input:
       User message: "${prompt}"
+      
+      <|assistant|>
     `;
 
     const res = await fetch(`${getOllamaUrl()}/api/generate`, {
@@ -26,7 +31,10 @@ export const runCoordinatorAgent = async (prompt: string, onToken: (count: numbe
         model: "phi3",
         prompt: coordPrompt,
         stream: true,
-        options: { temperature: 0 }
+        options: { 
+          temperature: 0, // Keeping temperature at 0 for deterministic JSON output
+          stop: ["<|end|>", "<|user|>", "###"] 
+        }
       })
     });
 
@@ -58,10 +66,13 @@ export const runCoordinatorAgent = async (prompt: string, onToken: (count: numbe
             tokens++;
             onToken(tokens);
           }
-        } catch (e) {}
+        } catch (e) {
+          // Parsing individual lines; standard streaming behavior
+        }
       }
     }
 
+    // Extracting the JSON from the dashes as per your parsing logic
     const match = fullResponse.match(/---(.*?)---/s);
     if (match) {
       try {
@@ -75,6 +86,7 @@ export const runCoordinatorAgent = async (prompt: string, onToken: (count: numbe
   } catch (e) {
     console.error("[alfred-next/app/services/agents/coordinatorAgent.ts] Coordinator Agent failed:", e);
   }
+  
   console.log("[alfred-next/app/services/agents/coordinatorAgent.ts] Returning fallback result.");
-  return { commands: true, memory: true, conversational: true }; // Safe fallback
+  return { commands: true, memory: true, conversational: true }; 
 };

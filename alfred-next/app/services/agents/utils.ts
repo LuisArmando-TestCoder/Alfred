@@ -9,9 +9,11 @@ export const getOllamaUrl = () => {
 export const formatMetricPrefix = (num: number): string => {
   if (num < 1000) return num.toString();
   const suffixes = ['', 'k', 'M', 'G', 'T', 'P', 'E'];
-  const suffixNum = Math.floor(("" + num).length / 3);
-  let shortValue: string | number = parseFloat((suffixNum !== 0 ? (num / Math.pow(1000, suffixNum)) : num).toPrecision(2));
-  if (shortValue % 1 !== 0) {
+  const suffixNum = Math.floor(Math.log10(num) / 3);
+  let shortValue: string | number = parseFloat((num / Math.pow(1000, suffixNum)).toPrecision(3));
+  if (shortValue >= 10 && shortValue < 1000) {
+    shortValue = Math.round(shortValue);
+  } else if (shortValue < 10) {
     shortValue = shortValue.toFixed(1);
   }
   return shortValue + suffixes[suffixNum];

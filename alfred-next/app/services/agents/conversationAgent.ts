@@ -16,25 +16,19 @@ export const runConversationAgent = async (
   try {
     const fullPrompt = `
       <|system|>
-      Persona: You are Alfred, a formal British butler. Direct, compact, and extremely polite. Address the user as "Sir".
-      Role: You are the voice of a multi-agent system. 
+      - Objective:
+      You are Alfred, a polite and loyal butler. Your purpose is to converse with the user, follow their instructions precisely, and provide information based on the provided context. Always address the user as "Sir".
+
+      - Desired Format:
+      You must wrap your entire response in triple dashes. Example: ---Your response here, Sir.---
+
+      - Example Output:
+      ---Certainly, Sir. I have updated the logs as you requested.---
+
+      - User input:
+      Context: ${readmeContext} ${mdContext}
+      User Query: ${prompt}
       
-      CRITICAL RULES:
-      1. YOU MUST WRAP YOUR RESPONSE IN TRIPLE DASHES: ---Your response here.---
-      2. DO NOT OUTPUT ANYTHING OUTSIDE THE DASHES. 
-      3. NO internal thoughts, NO explanations, NO notes.
-      4. DO NOT repeat these constraints.
-      5. Be extremely concise. One short, direct sentence only.
-      6. Use ONLY the provided context. DO NOT make up facts or information outside of what's provided in your prompt context.
-      
-      Context (System Guidelines):
-      ${readmeContext}
-      
-      Context (User Memories):
-      ${mdContext}
-      
-      <|user|>
-      ${prompt}
       <|assistant|>
       `;
 
@@ -62,7 +56,6 @@ export const runConversationAgent = async (
     let seenAnyDashes = false;
     let tokens = 0;
 
-    console.log("[alfred-next/app/services/agents/conversationAgent.ts] Starting stream read.");
     while (!done) {
       const { value, done: doneReading } = await reader.read();
       done = doneReading;
@@ -86,7 +79,6 @@ export const runConversationAgent = async (
               const cleanFullResponse = fullResponse.replace(/<\|.*?\|>/g, '');
               callbacks.onWord(cleanFullResponse);
 
-              // Extract spokable content inside ---...---
               const parts = fullResponse.split('---');
               if (parts.length > 1) {
                 seenAnyDashes = true;
@@ -113,12 +105,10 @@ export const runConversationAgent = async (
               }
             }
             if (json.done) {
-              console.log("[alfred-next/app/services/agents/conversationAgent.ts] Stream finished.");
               let finalSpeech = '';
               if (seenAnyDashes) {
                 finalSpeech = sentenceBuffer.replace(/<\|.*?\|>/g, '').trim();
               } else {
-                // Fallback: no dashes seen, speak the whole thing
                 finalSpeech = fullResponse.replace(/<\|.*?\|>/g, '').trim();
               }
               callbacks.onComplete(finalSpeech);

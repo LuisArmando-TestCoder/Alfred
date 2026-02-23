@@ -7,7 +7,8 @@ export const runCommandAgent = async (
   commands: CommandsRecord, 
   onCommandMatched: (match: { command: string, args: (string | number)[] }) => void,
   updateStatus: (state: AgentState) => void,
-  onToken: (count: number) => void
+  onToken: (count: number) => void,
+  onSearchToken?: (count: number) => void
 ) => {
   console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() start.");
   try {
@@ -20,6 +21,7 @@ export const runCommandAgent = async (
     const availableCommands = searchData.commands || [];
     console.log("[alfred-next/app/services/agents/commandAgent.ts] Found available commands from server:", availableCommands);
     
+    if (onSearchToken) onSearchToken(availableCommands.length);
     updateStatus('success');
 
     const cmdPrompt = `

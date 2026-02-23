@@ -52,35 +52,35 @@ export function AlfredStatus({ processingState, statusMessage, agentStatus, agen
       <div className="flex gap-8 px-6 py-3 rounded-full bg-black/40 border border-green-900/30 backdrop-blur-sm">
         <div className="flex flex-col items-center gap-2 relative">
           <div className={`w-3 h-3 rounded-full ${getAgentColor(agentStatus.coordinator)} transition-all duration-300`} />
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] font-mono text-yellow-500/80 pointer-events-none">
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-yellow-400 drop-shadow-[0_0_3px_rgba(234,179,8,0.5)] pointer-events-none whitespace-nowrap">
             {agentTokens.coordinator > 0 ? formatMetricPrefix(agentTokens.coordinator) : ''}
           </span>
           <span className="text-[10px] uppercase tracking-tighter text-green-700 font-bold">Coord</span>
         </div>
         <div className="flex flex-col items-center gap-2 relative">
           <div className={`w-3 h-3 rounded-full ${getAgentColor(agentStatus.commandSearch)} transition-all duration-300`} />
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] font-mono text-yellow-500/80 pointer-events-none">
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-yellow-400 drop-shadow-[0_0_3px_rgba(234,179,8,0.5)] pointer-events-none whitespace-nowrap">
             {agentTokens.commandSearch > 0 ? formatMetricPrefix(agentTokens.commandSearch) : ''}
           </span>
           <span className="text-[10px] uppercase tracking-tighter text-green-700 font-bold">Search</span>
         </div>
         <div className="flex flex-col items-center gap-2 relative">
           <div className={`w-3 h-3 rounded-full ${getAgentColor(agentStatus.conversation)} transition-all duration-300`} />
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] font-mono text-yellow-500/80 pointer-events-none">
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-yellow-400 drop-shadow-[0_0_3px_rgba(234,179,8,0.5)] pointer-events-none whitespace-nowrap">
             {agentTokens.conversation > 0 ? formatMetricPrefix(agentTokens.conversation) : ''}
           </span>
           <span className="text-[10px] uppercase tracking-tighter text-green-700 font-bold">Brain</span>
         </div>
         <div className="flex flex-col items-center gap-2 relative">
           <div className={`w-3 h-3 rounded-full ${getAgentColor(agentStatus.command)} transition-all duration-300`} />
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] font-mono text-yellow-500/80 pointer-events-none">
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-yellow-400 drop-shadow-[0_0_3px_rgba(234,179,8,0.5)] pointer-events-none whitespace-nowrap">
             {agentTokens.command > 0 ? formatMetricPrefix(agentTokens.command) : ''}
           </span>
           <span className="text-[10px] uppercase tracking-tighter text-green-700 font-bold">Cmds</span>
         </div>
         <div className="flex flex-col items-center gap-2 relative">
           <div className={`w-3 h-3 rounded-full ${getAgentColor(agentStatus.context)} transition-all duration-300`} />
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] font-mono text-yellow-500/80 pointer-events-none">
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-yellow-400 drop-shadow-[0_0_3px_rgba(234,179,8,0.5)] pointer-events-none whitespace-nowrap">
             {agentTokens.context > 0 ? formatMetricPrefix(agentTokens.context) : ''}
           </span>
           <span className="text-[10px] uppercase tracking-tighter text-green-700 font-bold">Memory</span>
