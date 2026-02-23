@@ -2,8 +2,8 @@ import { links, alfredRemembers } from "../data/alfredData.ts";
 import { r, corsHeaders } from "../utils.ts";
 
 export const handleLink = (key: string) => {
-    // @ts-ignore
-    const linkData = links[key];
+    // @ts-ignore: dynamic key access
+    const linkData = links[key as keyof typeof links];
     
     if (linkData) {
          return Response.json({ action: "open", url: linkData.url, message: linkData.msg }, { headers: corsHeaders });

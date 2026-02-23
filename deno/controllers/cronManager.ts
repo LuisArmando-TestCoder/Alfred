@@ -7,7 +7,7 @@ type JobInfo = {
     title: string;
     cron: string;
     command: string;
-    cronInstance: any;
+    cronInstance: Cron;
 };
 
 class CronManager {

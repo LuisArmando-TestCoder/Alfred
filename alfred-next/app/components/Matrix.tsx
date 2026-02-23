@@ -21,8 +21,8 @@ export default function Matrix() {
     const ctx = c.getContext('2d');
     if (!ctx) return;
 
-    let speed = 2;
-    let letterSpacing = 20;
+    const speed = 2;
+    const letterSpacing = 20;
     let count = 0, count2 = 0;
 
     const toCamelCase = (str: string) => {
@@ -52,7 +52,14 @@ export default function Matrix() {
       textColors = allTextColors[colorIndex];
     }, 10000);
 
-    const textCreatedArray: any[] = [];
+    interface MatrixText {
+      letter: string;
+      x: number;
+      y: number;
+      color: string;
+    }
+
+    const textCreatedArray: MatrixText[] = [];
     let nextCharIndex = 0;
     const r = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1) + min);
 

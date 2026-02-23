@@ -20,25 +20,27 @@ Deno.serve({ port: 8000 }, async (req) => {
 
     if (path.startsWith("/music/")) {
         return handleMusic(path.split("/")[2]);
-    }
-
-    if (path.startsWith("/link/")) {
+    } else if (path.startsWith("/link/")) {
         return handleLink(path.split("/")[2]);
-    }
-
-    if (path.startsWith("/info/")) {
+    } else if (path.startsWith("/info/")) {
         return handleInfo(path.split("/")[2]);
-    }
-
-    if (path.startsWith("/paint/")) {
+    } else if (path.startsWith("/paint/")) {
         return handlePaint(path.split("/")[2]);
-    }
-
-    if (path === "/api/context/raw") {
+    } else if (path === "/api/context/raw") {
         return await handleContextRaw(req);
-    }
-
-    if (path === "/api/events") {
+    } else if (path === "/api/readme" || path === "/api/readme/") {
+        try {
+            const content = await Deno.readTextFile("../README.md");
+            return new Response(JSON.stringify({ content }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+        } catch (e) {
+            console.error("Error reading README.md:", e);
+            return new Response(JSON.stringify({ content: "" }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+        }
+    } else if (path === "/api/events") {
         return commandManager.handleSSE(req);
     }
 

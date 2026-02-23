@@ -79,15 +79,30 @@ class CommandManager {
 
     handleSSE(req: Request) {
         const id = crypto.randomUUID();
+        let heartbeatInterval: number | undefined;
+
         const body = new ReadableStream({
             start: (controller) => {
                 const client = this.addClient(id, controller);
+                
+                // Keep-alive heartbeat every 30 seconds
+                heartbeatInterval = setInterval(() => {
+                    try {
+                        controller.enqueue(new TextEncoder().encode(": heartbeat\n\n"));
+                    } catch (e) {
+                        console.error(`Error sending heartbeat to client ${id}:`, e);
+                        if (heartbeatInterval) clearInterval(heartbeatInterval);
+                        this.removeClient(client);
+                    }
+                }, 30000);
+
                 req.signal.addEventListener("abort", () => {
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
                     this.removeClient(client);
                 });
             },
             cancel: () => {
-                // Handled by abort listener
+                if (heartbeatInterval) clearInterval(heartbeatInterval);
             }
         });
 

@@ -13,7 +13,7 @@ export const handleContextRaw = async (req: Request) => {
             return Response.json({ success: true }, { headers: corsHeaders });
         }
         return new Response("Method not allowed", { status: 405, headers: corsHeaders });
-    } catch (e: any) {
-        return new Response(`Error: ${e.message}`, { status: 500, headers: corsHeaders });
+    } catch (e) {
+        return new Response(`Error: ${e instanceof Error ? e.message : String(e)}`, { status: 500, headers: corsHeaders });
     }
 };

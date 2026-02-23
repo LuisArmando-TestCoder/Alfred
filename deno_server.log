@@ -1,0 +1,55 @@
+Initializing Cron Manager. Watching folder: /Users/luisarmandooriens/Desktop/Alfred/deno/data/cron
+Listening on http://0.0.0.0:8000/
+Scheduling job [Test Pulse] from test_pulse.md: * * * * * -> paint("blue")
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
+Triggering cron job: Test Pulse
+Pulsing command: {"command":"paint","args":["blue"]}
