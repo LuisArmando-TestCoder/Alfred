@@ -6,20 +6,21 @@ export const runCommandAgent = async (
   context: string, 
   commands: CommandsRecord, 
   onCommandMatched: (match: { command: string, args: (string | number)[] }) => void,
-  updateStatus?: (state: AgentState) => void
+  updateStatus: (state: AgentState) => void,
+  onToken: (count: number) => void
 ) => {
   console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() start.");
   try {
     // Phase 2.1: Command Search (Inside Command Agent)
     console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() Phase: Command Search.");
-    if (updateStatus) updateStatus('processing');
+    updateStatus('processing');
     
     const searchRes = await fetch('http://localhost:8000/api/commands');
     const searchData = await searchRes.json();
     const availableCommands = searchData.commands || [];
     console.log("[alfred-next/app/services/agents/commandAgent.ts] Found available commands from server:", availableCommands);
     
-    if (updateStatus) updateStatus('success');
+    updateStatus('success');
 
     const cmdPrompt = `
       You are a Command Agent. Analyze the message and context to decide if a command should be executed.
@@ -43,17 +44,38 @@ export const runCommandAgent = async (
       body: JSON.stringify({
         model: "phi3",
         prompt: cmdPrompt,
-        stream: false,
+        stream: true,
         options: { temperature: 0 }
       })
     });
 
-    if (!res.ok) {
+    if (!res.ok || !res.body) {
       console.error("[alfred-next/app/services/agents/commandAgent.ts] Ollama request failed.");
       return;
     }
-    const json = await res.json();
-    const response = json.response.trim();
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let response = '';
+    let tokens = 0;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const json = JSON.parse(line);
+          if (json.response) {
+            response += json.response;
+            tokens++;
+            onToken(tokens);
+          }
+        } catch (e) {}
+      }
+    }
     
     console.log("[alfred-next/app/services/agents/commandAgent.ts] Command Agent raw response:", response);
 

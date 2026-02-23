@@ -8,7 +8,8 @@ export const runConversationAgent = async (
     onWord: (fullResponse: string) => void,
     onSentence: (sentence: string) => void,
     onComplete: (sentence: string) => void,
-    onError: (err: Error) => void
+    onError: (err: Error) => void,
+    onToken?: (count: number) => void
   }
 ) => {
   console.log("[alfred-next/app/services/agents/conversationAgent.ts] runConversationAgent() start.");
@@ -71,6 +72,7 @@ export const runConversationAgent = async (
         const lines = lineBuffer.split('\n');
         lineBuffer = lines.pop() || '';
 
+        let tokens = 0;
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
@@ -78,6 +80,8 @@ export const runConversationAgent = async (
             if (json.response) {
               const word = json.response;
               fullResponse += word;
+              tokens++;
+              if (callbacks.onToken) callbacks.onToken(tokens);
 
               const cleanFullResponse = fullResponse.replace(/<\|.*?\|>/g, '');
               callbacks.onWord(cleanFullResponse);

@@ -1,6 +1,6 @@
 import { getOllamaUrl } from "./utils";
 
-export const runContextManager = async (prompt: string, currentContext: string) => {
+export const runContextManager = async (prompt: string, currentContext: string, onToken: (count: number) => void) => {
   console.log("[alfred-next/app/services/agents/contextAgent.ts] runContextManager() start.");
   try {
     const crudPrompt = `
@@ -15,7 +15,7 @@ export const runContextManager = async (prompt: string, currentContext: string) 
         5. Return the ENTIRE updated context.
         
         Current Context:
-        ${currentContext}
+        \${currentContext}
 
         Example of Context Update:
         If the user says "Remember that I have a meeting at 3pm", you might update the context with:
@@ -33,45 +33,66 @@ export const runContextManager = async (prompt: string, currentContext: string) 
         emotionalState:sad
         foodPreference:italian
         
-        User said: "${prompt}"
+        User said: "\${prompt}"
         `;
 
-    const res = await fetch(`${getOllamaUrl()}/api/generate`, {
+    const res = await fetch(`\${getOllamaUrl()}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: "phi3",
         prompt: crudPrompt,
-        stream: false,
+        stream: true,
         options: { temperature: 0 }
       })
     });
 
-    if (res.ok) {
-      const json = await res.json();
-      const newContext = json.response.trim();
-      console.log("[alfred-next/app/services/agents/contextAgent.ts] Context LLM generated new content.");
+    if (!res.ok || !res.body) throw new Error("Context Manager stream failed");
 
-      // Save new context to server and get diff
-      console.log("[alfred-next/app/services/agents/contextAgent.ts] Sending update to Deno server...");
-      const saveRes = await fetch('http://localhost:8000/api/context/raw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newContext })
-      });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let newContext = '';
+    let tokens = 0;
 
-      if (saveRes.ok) {
-        const saveData = await saveRes.json();
-        console.log("[alfred-next/app/services/agents/contextAgent.ts] Server saved memory. Diff:", saveData.diff);
-        return {
-          content: newContext,
-          diff: saveData.diff || ""
-        };
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const json = JSON.parse(line);
+          if (json.response) {
+            newContext += json.response;
+            tokens++;
+            onToken(tokens);
+          }
+        } catch (e) {}
       }
-      
-      return { content: newContext, diff: "" };
     }
-    return { content: currentContext, diff: "" };
+
+    newContext = newContext.trim();
+    console.log("[alfred-next/app/services/agents/contextAgent.ts] Context LLM generated new content.");
+
+    // Save new context to server and get diff
+    console.log("[alfred-next/app/services/agents/contextAgent.ts] Sending update to Deno server...");
+    const saveRes = await fetch('http://localhost:8000/api/context/raw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: newContext })
+    });
+
+    if (saveRes.ok) {
+      const saveData = await saveRes.json();
+      console.log("[alfred-next/app/services/agents/contextAgent.ts] Server saved memory. Diff:", saveData.diff);
+      return {
+        content: newContext,
+        diff: saveData.diff || ""
+      };
+    }
+    
+    return { content: newContext, diff: "" };
   } catch (e) {
     console.error("Context Manager failed", e);
     throw e;

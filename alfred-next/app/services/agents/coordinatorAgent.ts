@@ -1,6 +1,6 @@
 import { getOllamaUrl } from "./utils";
 
-export const runCoordinatorAgent = async (prompt: string) => {
+export const runCoordinatorAgent = async (prompt: string, onToken: (count: number) => void) => {
   console.log("[alfred-next/app/services/agents/coordinatorAgent.ts] runCoordinatorAgent() start.");
   try {
     const coordPrompt = `
@@ -25,23 +25,44 @@ export const runCoordinatorAgent = async (prompt: string) => {
       body: JSON.stringify({
         model: "phi3",
         prompt: coordPrompt,
-        stream: false,
+        stream: true,
         options: { temperature: 0 }
       })
     });
 
-    if (res.ok) {
-      const json = await res.json();
-      const response = json.response.trim();
-      const match = response.match(/---(.*?)---/s);
-      if (match) {
+    if (!res.ok || !res.body) throw new Error("Coordinator stream failed");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = '';
+    let tokens = 0;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (!line.trim()) continue;
         try {
-          const result = JSON.parse(match[1]);
-          console.log("[alfred-next/app/services/agents/coordinatorAgent.ts] Coordinator Agent result:", result);
-          return result;
-        } catch (e) {
-          console.error("[alfred-next/app/services/agents/coordinatorAgent.ts] JSON parse failed:", e);
-        }
+          const json = JSON.parse(line);
+          if (json.response) {
+            fullResponse += json.response;
+            tokens++;
+            onToken(tokens);
+          }
+        } catch (e) {}
+      }
+    }
+
+    const match = fullResponse.match(/---(.*?)---/s);
+    if (match) {
+      try {
+        const result = JSON.parse(match[1]);
+        console.log("[alfred-next/app/services/agents/coordinatorAgent.ts] Coordinator Agent result:", result);
+        return result;
+      } catch (e) {
+        console.error("[alfred-next/app/services/agents/coordinatorAgent.ts] JSON parse failed:", e);
       }
     }
   } catch (e) {

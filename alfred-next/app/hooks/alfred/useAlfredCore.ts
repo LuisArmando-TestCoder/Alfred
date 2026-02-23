@@ -28,6 +28,13 @@ const initialState: AlfredCoreState = {
     command: 'idle',
     context: 'idle',
   },
+  agentTokens: {
+    coordinator: 0,
+    commandSearch: 0,
+    conversation: 0,
+    command: 0,
+    context: 0,
+  },
   lastWordDisplay: '',
   currentWord: '',
 };
@@ -48,6 +55,11 @@ function alfredCoreReducer(
         ...state,
         agentStatus: { ...state.agentStatus, ...action.payload },
       };
+    case 'SET_AGENT_TOKENS':
+      return {
+        ...state,
+        agentTokens: { ...state.agentTokens, ...action.payload },
+      };
     case 'RESET_AGENT_STATUS':
       return {
         ...state,
@@ -57,6 +69,13 @@ function alfredCoreReducer(
           conversation: 'idle', 
           command: 'idle', 
           context: 'idle' 
+        },
+        agentTokens: {
+          coordinator: 0,
+          commandSearch: 0,
+          conversation: 0,
+          command: 0,
+          context: 0,
         },
       };
     case 'SET_LAST_WORD_DISPLAY':
@@ -113,6 +132,13 @@ export function useAlfredCore() {
       context: AgentState 
     }) => {
       dispatch({ type: 'SET_AGENT_STATUS', payload: status });
+    },
+    [],
+  );
+
+  const updateAgentTokens = useCallback(
+    (agent: keyof AlfredCoreState['agentTokens'], tokens: number) => {
+      dispatch({ type: 'SET_AGENT_TOKENS', payload: { [agent]: tokens } });
     },
     [],
   );
@@ -200,6 +226,7 @@ export function useAlfredCore() {
     processingStateRef,
     updateProcessingState,
     updateAgentStatus,
+    updateAgentTokens,
     setAgentStatus,
     setStatusMessage,
     setMatrixText,

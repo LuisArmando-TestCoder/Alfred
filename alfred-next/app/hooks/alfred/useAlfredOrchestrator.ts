@@ -20,6 +20,7 @@ interface UseAlfredOrchestratorProps {
   // Actions
   updateProcessingState: (state: ProcessingState) => void;
   updateAgentStatus: (agent: 'coordinator' | 'commandSearch' | 'conversation' | 'command' | 'context', state: AgentState) => void;
+  updateAgentTokens: (agent: 'coordinator' | 'commandSearch' | 'conversation' | 'command' | 'context', tokens: number) => void;
   setAgentStatus: (status: { coordinator: AgentState, commandSearch: AgentState, conversation: AgentState, command: AgentState, context: AgentState }) => void;
   setStatusMessage: (msg: string) => void;
   setMatrixText: (text: string) => void;
@@ -47,6 +48,7 @@ export function useAlfredOrchestrator({
   processingStateRef,
   updateProcessingState,
   updateAgentStatus,
+  updateAgentTokens,
   setAgentStatus,
   setStatusMessage,
   setMatrixText,
@@ -101,7 +103,7 @@ export function useAlfredOrchestrator({
 
     console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Phase 1: Requesting Coordinator Agent...");
     updateAgentStatus('coordinator', 'processing');
-    const coordinatorResult = await runCoordinatorAgent(fullText);
+    const coordinatorResult = await runCoordinatorAgent(fullText, (t) => updateAgentTokens('coordinator', t));
     updateAgentStatus('coordinator', 'success');
     console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Coordinator Decision:", coordinatorResult);
 
@@ -127,7 +129,7 @@ export function useAlfredOrchestrator({
             commandResult = match as { command: string; args: (string | number)[] };
           }, (searchState) => {
             updateAgentStatus('commandSearch', searchState);
-          });
+          }, (t) => updateAgentTokens('command', t));
           updateAgentStatus('command', 'success');
         } catch (err) {
           updateAgentStatus('command', 'error');
@@ -141,7 +143,7 @@ export function useAlfredOrchestrator({
       backgroundTasks.push((async () => {
         updateAgentStatus('context', 'processing');
         try {
-          const res = await runContextManager(fullText, currentContext);
+          const res = await runContextManager(fullText, currentContext, (t) => updateAgentTokens('context', t));
           console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Context Manager returned updated memory.");
           memoryResult = res as { content: string; diff: string };
           setContextText(memoryResult.content);
@@ -159,6 +161,7 @@ export function useAlfredOrchestrator({
       updateAgentStatus('conversation', 'processing');
       await new Promise<void>((resolve, reject) => {
         runConversationAgent(fullText, currentContext, readmeText, {
+          onToken: (t) => updateAgentTokens('conversation', t),
           onWord: (fullResponse) => {
             setLastWordDisplay(fullResponse);
             const hasThoughts = fullResponse.includes('<thought>') || fullResponse.includes('</thought>') || fullResponse.includes('Thinking:');

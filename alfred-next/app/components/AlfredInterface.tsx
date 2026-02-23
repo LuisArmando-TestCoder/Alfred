@@ -14,6 +14,7 @@ export default function AlfredInterface() {
     processingState, 
     statusMessage, 
     agentStatus, 
+    agentTokens,
     lastWordDisplay, 
     currentWord 
   } = state;
@@ -36,6 +37,7 @@ export default function AlfredInterface() {
             processingState={processingState} 
             statusMessage={statusMessage} 
             agentStatus={agentStatus}
+            agentTokens={agentTokens}
           />
           
           <span className="text-2xl text-green-400 opacity-80 max-w-3xl px-4">{lastWordDisplay}</span>
