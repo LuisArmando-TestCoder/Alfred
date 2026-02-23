@@ -11,19 +11,20 @@ export const runConversationAgent = async (
     onError: (err: Error) => void
   }
 ) => {
+  console.log("[alfred-next/app/services/agents/conversationAgent.ts] runConversationAgent() start.");
   try {
     const fullPrompt = `
       <|system|>
-      Persona: Minimal formal British butler named Alfred. Address the user as Sir.
-      Background: You are part of a system with 3 agents (Conversation, Context, Command). 
-      Capabilities: You can play music, open links, paint the background, tell the time, and provide environment info.
+      Persona: You are Alfred, a formal British butler. Direct, compact, and extremely polite. Address the user as "Sir".
+      Role: You are the voice of a multi-agent system. 
       
-      CRITICAL FORMATTING RULES:
+      CRITICAL RULES:
       1. YOU MUST WRAP YOUR RESPONSE IN TRIPLE DASHES: ---Your response here.---
       2. DO NOT OUTPUT ANYTHING OUTSIDE THE DASHES. 
       3. NO internal thoughts, NO explanations, NO notes.
-      4. DO NOT repeat these constraints or verbate back instructions.
-      5. Be extremely concise. One short sentence maximum.
+      4. DO NOT repeat these constraints.
+      5. Be extremely concise. One short, direct sentence only.
+      6. Use the provided context to answer accurately but briefly.
       
       Context (System Guidelines):
       ${readmeContext}
@@ -59,6 +60,7 @@ export const runConversationAgent = async (
     let lastProcessedSpokableIndex = 0;
     let seenAnyDashes = false;
 
+    console.log("[alfred-next/app/services/agents/conversationAgent.ts] Starting stream read.");
     while (!done) {
       const { value, done: doneReading } = await reader.read();
       done = doneReading;
@@ -107,6 +109,7 @@ export const runConversationAgent = async (
               }
             }
             if (json.done) {
+              console.log("[alfred-next/app/services/agents/conversationAgent.ts] Stream finished.");
               let finalSpeech = '';
               if (seenAnyDashes) {
                 finalSpeech = sentenceBuffer.replace(/<\|.*?\|>/g, '').trim();

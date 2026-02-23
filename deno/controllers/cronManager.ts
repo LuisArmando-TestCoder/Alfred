@@ -38,6 +38,7 @@ class CronManager {
     }
 
     private async loadJobFile(filename: string) {
+        console.log(`[deno/controllers/cronManager.ts] loadJobFile() loading: ${filename}`);
         try {
             const filePath = join(this.cronFolder, filename);
             const content = await Deno.readTextFile(filePath);
@@ -58,7 +59,7 @@ class CronManager {
             console.log(`Scheduling job [${title}] from ${filename}: ${cronPattern} -> ${command}`);
 
             const cronInstance = new Cron(cronPattern, () => {
-                console.log(`Triggering cron job: ${title}`);
+                console.log(`[deno/controllers/cronManager.ts] Cron Triggered: ${title}`);
                 commandManager.pulse(command);
             });
 
@@ -78,6 +79,7 @@ class CronManager {
     }
 
     private async watchFolder() {
+        console.log(`[deno/controllers/cronManager.ts] watchFolder() starting watcher on ${this.cronFolder}`);
         const watcher = Deno.watchFs(this.cronFolder);
         let timeout: number | undefined;
 
@@ -91,10 +93,10 @@ class CronManager {
                     if (!filename || !filename.endsWith(".md") || filename === "README.md") continue;
 
                     if (event.kind === "create" || event.kind === "modify") {
-                        console.log(`File ${filename} changed, reloading...`);
+                        console.log(`[deno/controllers/cronManager.ts] File ${filename} changed (${event.kind}), reloading...`);
                         await this.loadJobFile(filename);
                     } else if (event.kind === "remove") {
-                        console.log(`File ${filename} removed, stopping job...`);
+                        console.log(`[deno/controllers/cronManager.ts] File ${filename} removed, stopping job...`);
                         this.stopJob(filename);
                     }
                 }

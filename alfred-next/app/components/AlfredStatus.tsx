@@ -6,6 +6,8 @@ interface AlfredStatusProps {
   processingState: ProcessingState;
   statusMessage: string;
   agentStatus: {
+    coordinator: AgentState;
+    commandSearch: AgentState;
     conversation: AgentState;
     command: AgentState;
     context: AgentState;
@@ -40,6 +42,14 @@ export function AlfredStatus({ processingState, statusMessage, agentStatus }: Al
       </div>
 
       <div className="flex gap-8 px-6 py-3 rounded-full bg-black/40 border border-green-900/30 backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${getAgentColor(agentStatus.coordinator)} transition-all duration-300`} />
+          <span className="text-[10px] uppercase tracking-tighter text-green-700 font-bold">Coord</span>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${getAgentColor(agentStatus.commandSearch)} transition-all duration-300`} />
+          <span className="text-[10px] uppercase tracking-tighter text-green-700 font-bold">Search</span>
+        </div>
         <div className="flex flex-col items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${getAgentColor(agentStatus.conversation)} transition-all duration-300`} />
           <span className="text-[10px] uppercase tracking-tighter text-green-700 font-bold">Brain</span>

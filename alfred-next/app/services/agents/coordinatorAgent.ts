@@ -1,14 +1,16 @@
 import { getOllamaUrl } from "./utils";
 
 export const runCoordinatorAgent = async (prompt: string) => {
+  console.log("[alfred-next/app/services/agents/coordinatorAgent.ts] runCoordinatorAgent() start.");
   try {
     const coordPrompt = `
       You are a Coordinator Agent. Analyze the user message and decide if we need to:
-      1. Execute a command (e.g., play music, open link, paint, etc.)
-      2. Update memory (if the message contains new info about the user or context)
+      1. commands: true; if Execute a command (e.g., play music, open link, paint, etc.)
+      2. memory: true if Update memory (if the message contains new info about the user or context)
+      3. conversational: if Reply to the user (if it's a question, a greeting, or needs a verbal response)
       
       Output EXACTLY a JSON object wrapped in triple dashes:
-      ---{"commands": boolean, "memory": boolean}---
+      ---{"commands": true or false, "memory":  true or false, "conversational":  true or false}---
       
       RULES:
       - ONLY output the JSON inside dashes.
@@ -34,14 +36,17 @@ export const runCoordinatorAgent = async (prompt: string) => {
       const match = response.match(/---(.*?)---/s);
       if (match) {
         try {
-          return JSON.parse(match[1]);
+          const result = JSON.parse(match[1]);
+          console.log("[alfred-next/app/services/agents/coordinatorAgent.ts] Coordinator Agent result:", result);
+          return result;
         } catch (e) {
-          console.error("JSON parse failed in Coordinator", e);
+          console.error("[alfred-next/app/services/agents/coordinatorAgent.ts] JSON parse failed:", e);
         }
       }
     }
   } catch (e) {
-    console.error("Coordinator Agent failed", e);
+    console.error("[alfred-next/app/services/agents/coordinatorAgent.ts] Coordinator Agent failed:", e);
   }
-  return { commands: true, memory: true }; // Safe fallback
+  console.log("[alfred-next/app/services/agents/coordinatorAgent.ts] Returning fallback result.");
+  return { commands: true, memory: true, conversational: true }; // Safe fallback
 };

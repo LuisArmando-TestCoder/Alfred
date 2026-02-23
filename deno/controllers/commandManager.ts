@@ -62,9 +62,10 @@ class CommandManager {
     }
 
     pulse(rawCommand: string) {
+        console.log(`[deno/controllers/commandManager.ts] pulse() triggering: ${rawCommand}`);
         const parsed = this.parseCommand(rawCommand);
         const data = JSON.stringify(parsed);
-        console.log(`Pulsing command: ${data}`);
+        console.log(`[deno/controllers/commandManager.ts] Broadcasters data: ${data}`);
         
         const encoder = new TextEncoder();
         for (const client of this.clients) {
@@ -77,12 +78,24 @@ class CommandManager {
         }
     }
 
+    getAvailableCommands() {
+        return [
+            "play_music(mood)",
+            "open_link(site)",
+            "paint(color)",
+            "get_time()",
+            "get_info(topic)"
+        ];
+    }
+
     handleSSE(req: Request) {
+        console.log("[deno/controllers/commandManager.ts] handleSSE() new client connecting.");
         const id = crypto.randomUUID();
         let heartbeatInterval: number | undefined;
 
         const body = new ReadableStream({
             start: (controller) => {
+                console.log(`[deno/controllers/commandManager.ts] SSE stream started for client: ${id}`);
                 const client = this.addClient(id, controller);
                 
                 // Keep-alive heartbeat every 30 seconds

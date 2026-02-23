@@ -1,13 +1,26 @@
-import { CommandsRecord } from "../../types/alfred";
+import { CommandsRecord, AgentState } from "../../types/alfred";
 import { getOllamaUrl } from "./utils";
 
 export const runCommandAgent = async (
   prompt: string, 
   context: string, 
   commands: CommandsRecord, 
-  onCommandMatched: (match: { command: string, args: (string | number)[] }) => void
+  onCommandMatched: (match: { command: string, args: (string | number)[] }) => void,
+  updateStatus?: (state: AgentState) => void
 ) => {
+  console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() start.");
   try {
+    // Phase 2.1: Command Search (Inside Command Agent)
+    console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() Phase: Command Search.");
+    if (updateStatus) updateStatus('processing');
+    
+    const searchRes = await fetch('http://localhost:8000/api/commands');
+    const searchData = await searchRes.json();
+    const availableCommands = searchData.commands || [];
+    console.log("[alfred-next/app/services/agents/commandAgent.ts] Found available commands from server:", availableCommands);
+    
+    if (updateStatus) updateStatus('success');
+
     const cmdPrompt = `
       You are a Command Agent. Analyze the message and context to decide if a command should be executed.
       
@@ -18,11 +31,7 @@ export const runCommandAgent = async (
       4. Arguments MUST be quoted if strings.
       
       Available Commands:
-      - play_music(mood): mood can be "nice", "powerful", "funny", "sad", "awesome".
-      - open_link(site): site can be "study", "board", "work", "storage", "library", "space", "editor", "dashboard", "body", "anime", "entertainment", "project", "regular", "challenge".
-      - paint(color): color can be "blue", "yellow", "pink", "black".
-      - get_time(): current time.
-      - get_info(topic): browser, environment, creator, identity, life.
+      ${availableCommands.map((c: string) => `- ${c}`).join('\n')}
       
       Context: ${context}
       User: "${prompt}"
@@ -39,14 +48,18 @@ export const runCommandAgent = async (
       })
     });
 
-    if (!res.ok) return;
+    if (!res.ok) {
+      console.error("[alfred-next/app/services/agents/commandAgent.ts] Ollama request failed.");
+      return;
+    }
     const json = await res.json();
     const response = json.response.trim();
     
-    console.log("Command Agent raw response:", response);
+    console.log("[alfred-next/app/services/agents/commandAgent.ts] Command Agent raw response:", response);
 
     const match = response.match(/>>\s*execute:(\w+)\((.*)\)\s*>>/);
     if (match) {
+      console.log("[alfred-next/app/services/agents/commandAgent.ts] Command pattern matched.");
       const command = match[1];
       const argsString = match[2];
       

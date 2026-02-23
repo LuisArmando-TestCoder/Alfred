@@ -29,6 +29,8 @@ export interface AlfredCoreState {
   processingState: ProcessingState;
   statusMessage: string;
   agentStatus: {
+    coordinator: AgentState;
+    commandSearch: AgentState;
     conversation: AgentState;
     command: AgentState;
     context: AgentState;

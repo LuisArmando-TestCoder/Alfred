@@ -31,7 +31,13 @@ export function useAlfredSpeech({
   const utterancesRef = useRef<Set<SpeechSynthesisUtterance>>(new Set());
 
   const speak = useCallback((text: string, onEnd?: () => void) => {
+    console.log(`[alfred-next/app/hooks/useAlfredSpeech.ts] speak() requested: "${text?.substring(0, 30)}..."`);
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (!text || text.trim() === '') {
+      console.warn("[alfred-next/app/hooks/useAlfredSpeech.ts] speak() aborted: empty text.");
+      if (onEnd) onEnd();
+      return;
+    }
     
     if (processingStateRef.current !== 'speaking') {
       onProcessingStateChange('speaking');
@@ -57,14 +63,26 @@ export function useAlfredSpeech({
     utterance.pitch = 0.8;
     isSpeechDoneRef.current = false;
     utterance.onend = () => {
+      console.log(`[alfred-next/app/hooks/useAlfredSpeech.ts] speak() utterance ended: "${text.substring(0, 20)}..."`);
       utterancesRef.current.delete(utterance);
-      isSpeechDoneRef.current = true;
-      if (onEnd) onEnd();
-      if (onSpeechEnd) onSpeechEnd();
+      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] All speech done.");
+        isSpeechDoneRef.current = true;
+        if (onEnd) onEnd();
+        if (onSpeechEnd) onSpeechEnd();
+      } else {
+        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] Still speaking other utterances.");
+      }
     };
-    utterance.onerror = () => {
+    utterance.onerror = (e: any) => {
+      console.error("[alfred-next/app/hooks/useAlfredSpeech.ts] speak() utterance error event:", e);
+      console.error("[alfred-next/app/hooks/useAlfredSpeech.ts] speak() utterance error code:", e.error);
       utterancesRef.current.delete(utterance);
-      isSpeechDoneRef.current = true;
+      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] speech error recovery: setting isSpeechDone=true");
+        isSpeechDoneRef.current = true;
+        if (onSpeechEnd) onSpeechEnd();
+      }
     };
     window.speechSynthesis.speak(utterance);
   }, [onProcessingStateChange, processingStateRef, onSpeechEnd]);
@@ -118,14 +136,24 @@ export function useAlfredSpeech({
     window.speechSynthesis.speak(utterance);
   }, [onProcessingStateChange, processingStateRef, onSpeechEnd]);
 
-  const startListening = useCallback((silent: boolean = false) => {
+  const startListening = useCallback((silent: boolean = false, preserveTranscript: boolean = false) => {
+    console.log(`[alfred-next/app/hooks/useAlfredSpeech.ts] startListening(silent=${silent}, preserve=${preserveTranscript}) called.`);
     shouldListenRef.current = true;
     
+    const resetTranscript = () => {
+      if (!preserveTranscript) {
+        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] Resetting transcript buffers.");
+        transcriptBufferRef.current = '';
+        accumulatedTranscriptRef.current = '';
+      } else {
+        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] Preserving existing transcript buffers.");
+      }
+    };
+
     if (silent) {
         onProcessingStateChange('listening');
         onStatusChange("Listening...");
-        transcriptBufferRef.current = '';
-        accumulatedTranscriptRef.current = '';
+        resetTranscript();
         if (recognitionRef.current && !isRecognitionRunningRef.current) {
           try { 
             recognitionRef.current.start(); 
@@ -134,11 +162,12 @@ export function useAlfredSpeech({
     } else {
         onStatusChange("Sir is about to speak...");
         // NEW: Alfred announces he is listening
+        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] startListening() announcing start...");
         speak("Sir, I am listening", () => {
+            console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] startListening() announcement done, starting recognition.");
             onProcessingStateChange('listening');
             onStatusChange("Listening...");
-            transcriptBufferRef.current = '';
-            accumulatedTranscriptRef.current = '';
+            resetTranscript();
             if (recognitionRef.current && !isRecognitionRunningRef.current) {
               try { 
                 recognitionRef.current.start(); 
@@ -206,7 +235,7 @@ export function useAlfredSpeech({
         if (shouldListenRef.current && processingStateRef.current === 'listening') {
           onSilenceDetected();
         }
-      }, 2000);
+      }, 3000);
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

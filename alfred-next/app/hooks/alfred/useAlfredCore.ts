@@ -22,6 +22,8 @@ const initialState: AlfredCoreState = {
   processingState: 'idle',
   statusMessage: '',
   agentStatus: {
+    coordinator: 'idle',
+    commandSearch: 'idle',
     conversation: 'idle',
     command: 'idle',
     context: 'idle',
@@ -49,7 +51,13 @@ function alfredCoreReducer(
     case 'RESET_AGENT_STATUS':
       return {
         ...state,
-        agentStatus: { conversation: 'idle', command: 'idle', context: 'idle' },
+        agentStatus: { 
+          coordinator: 'idle',
+          commandSearch: 'idle',
+          conversation: 'idle', 
+          command: 'idle', 
+          context: 'idle' 
+        },
       };
     case 'SET_LAST_WORD_DISPLAY':
       return { ...state, lastWordDisplay: action.payload };
@@ -76,6 +84,11 @@ export function useAlfredCore() {
     onSilenceDetectedRef.current();
   }, []);
 
+  const checkRestartListeningRef = useRef<() => void>(() => {});
+  const handleSpeechEndProxy = useCallback(() => {
+    checkRestartListeningRef.current();
+  }, []);
+
   const updateProcessingState = useCallback((newState: ProcessingState) => {
     dispatch({ type: 'SET_PROCESSING_STATE', payload: newState });
     processingStateRef.current = newState;
@@ -85,14 +98,20 @@ export function useAlfredCore() {
   }, []);
 
   const updateAgentStatus = useCallback(
-    (agent: 'conversation' | 'command' | 'context', state: AgentState) => {
+    (agent: 'coordinator' | 'commandSearch' | 'conversation' | 'command' | 'context', state: AgentState) => {
       dispatch({ type: 'SET_AGENT_STATUS', payload: { [agent]: state } });
     },
     [],
   );
 
   const setAgentStatus = useCallback(
-    (status: { conversation: AgentState; command: AgentState; context: AgentState }) => {
+    (status: { 
+      coordinator: AgentState; 
+      commandSearch: AgentState;
+      conversation: AgentState; 
+      command: AgentState; 
+      context: AgentState 
+    }) => {
       dispatch({ type: 'SET_AGENT_STATUS', payload: status });
     },
     [],
@@ -117,6 +136,7 @@ export function useAlfredCore() {
     onProcessingStateChange: updateProcessingState,
     onResult: (t, accumulated) => setLastWordDisplay(accumulated + t),
     onSilenceDetected: handleSilenceDetectedProxy,
+    onSpeechEnd: handleSpeechEndProxy,
     shouldListenRef,
     processingStateRef,
   });
@@ -133,26 +153,38 @@ export function useAlfredCore() {
   } = speech;
 
   const checkRestartListening = useCallback(() => {
-    if (!isSpeechDoneRef.current) return;
+    console.log(`[alfred-next/app/hooks/alfred/useAlfredCore.ts] checkRestartListening() start. speechDone=${isSpeechDoneRef.current}, convDone=${isConversationDoneRef.current}, active=${isSystemActiveRef.current}, state=${processingStateRef.current}`);
+    
+    // Requirement: Global speech must be done
+    if (!isSpeechDoneRef.current) {
+      console.log("[alfred-next/app/hooks/alfred/useAlfredCore.ts] checkRestartListening() blocked: speech still active.");
+      return;
+    }
 
-    if (isConversationDoneRef.current) {
-      if (
-        isSystemActiveRef.current &&
-        processingStateRef.current !== 'listening'
-      ) {
-        startListening();
-      } else if (!isSystemActiveRef.current) {
-        updateProcessingState('paused');
+    // Requirement: Main processing (Conversation LLM) must be done
+    if (!isConversationDoneRef.current) {
+      console.log("[alfred-next/app/hooks/alfred/useAlfredCore.ts] checkRestartListening() blocked: main brain still processing.");
+      return;
+    }
+
+    // If both done, and system is active, restart listening
+    if (isSystemActiveRef.current) {
+      if (processingStateRef.current !== 'listening') {
+        console.log("[alfred-next/app/hooks/alfred/useAlfredCore.ts] checkRestartListening() conditions met. Triggering startListening(silent=false, preserve=true).");
+        // Always preserve transcript on restart check to allow resuming interrupted sessions
+        startListening(false, true);
+      } else {
+        console.log("[alfred-next/app/hooks/alfred/useAlfredCore.ts] checkRestartListening() system already listening.");
       }
     } else {
-      if (
-        isSystemActiveRef.current &&
-        processingStateRef.current !== 'listening'
-      ) {
-        startListening(true);
-      }
+      console.log("[alfred-next/app/hooks/alfred/useAlfredCore.ts] checkRestartListening() system inactive. Setting state to paused.");
+      updateProcessingState('paused');
     }
   }, [updateProcessingState, startListening, isSpeechDoneRef]);
+
+  useEffect(() => {
+    checkRestartListeningRef.current = checkRestartListening;
+  }, [checkRestartListening]);
 
   useAlfredLifecycle({
     stopListening,

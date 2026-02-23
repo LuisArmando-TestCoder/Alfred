@@ -19,8 +19,8 @@ interface UseAlfredOrchestratorProps {
   
   // Actions
   updateProcessingState: (state: ProcessingState) => void;
-  updateAgentStatus: (agent: 'conversation' | 'command' | 'context', state: AgentState) => void;
-  setAgentStatus: (status: { conversation: AgentState, command: AgentState, context: AgentState }) => void;
+  updateAgentStatus: (agent: 'coordinator' | 'commandSearch' | 'conversation' | 'command' | 'context', state: AgentState) => void;
+  setAgentStatus: (status: { coordinator: AgentState, commandSearch: AgentState, conversation: AgentState, command: AgentState, context: AgentState }) => void;
   setStatusMessage: (msg: string) => void;
   setMatrixText: (text: string) => void;
   setContextText: (text: string) => void;
@@ -56,6 +56,7 @@ export function useAlfredOrchestrator({
   speak,
   speakChunk,
   cancelSpeech,
+  stopListening,
   checkRestartListening,
   accumulatedTranscriptRef,
   transcriptBufferRef,
@@ -63,81 +64,161 @@ export function useAlfredOrchestrator({
 }: UseAlfredOrchestratorProps) {
   
   const onSilenceDetected = useCallback(async () => {
-    if (!isConversationDoneRef.current || !isSpeechDoneRef.current || processingStateRef.current !== 'listening') return;
+    console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() triggered.");
+    if (!isConversationDoneRef.current || !isSpeechDoneRef.current || processingStateRef.current !== 'listening') {
+      console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() aborted: system not ready to process.");
+      return;
+    }
     
     const fullText = (accumulatedTranscriptRef.current + transcriptBufferRef.current).trim();
-    if (!fullText) return;
+    if (!fullText) {
+      console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() aborted: empty transcript.");
+      return;
+    }
+
+    console.log(`[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Processing text: "${fullText}"`);
+
+    // Clear transcript buffers since we've captured the text for processing
+    console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Clearing transcript buffers for new interaction.");
+    accumulatedTranscriptRef.current = '';
+    transcriptBufferRef.current = '';
+    setLastWordDisplay('');
 
     isConversationDoneRef.current = false;
     isSpeechDoneRef.current = false;
-    setAgentStatus({ conversation: 'idle', command: 'idle', context: 'idle' });
+    stopListening();
+    setAgentStatus({ 
+      coordinator: 'idle', 
+      commandSearch: 'idle',
+      conversation: 'idle', 
+      command: 'idle', 
+      context: 'idle' 
+    });
     updateProcessingState('processing');
     setStatusMessage("Processing...");
     cancelSpeech();
     speak("Processing.");
 
+    console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Phase 1: Requesting Coordinator Agent...");
+    updateAgentStatus('coordinator', 'processing');
     const coordinatorResult = await runCoordinatorAgent(fullText);
+    updateAgentStatus('coordinator', 'success');
+    console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Coordinator Decision:", coordinatorResult);
 
     const contextRes = await fetch('http://localhost:8000/api/context/raw');
     const contextData = await contextRes.json();
     const currentContext = contextData.content;
 
     setMatrixText(''); // Reset at start of new interaction
-    updateAgentStatus('conversation', 'processing');
-    
-    await runConversationAgent(fullText, currentContext, readmeText, {
-      onWord: (fullResponse) => {
-        setLastWordDisplay(fullResponse);
-        const hasThoughts = fullResponse.includes('<thought>') || fullResponse.includes('</thought>') || fullResponse.includes('Thinking:');
-        if (hasThoughts) {
-          setMatrixText(fullResponse);
-        } else {
-          setMatrixText('');
-        }
-      },
-      onSentence: (sentence) => speakChunk(sentence, false),
-      onComplete: (sentence) => {
-        updateAgentStatus('conversation', 'success');
-        speakChunk(sentence, true, checkRestartListening);
-      },
-      onError: (err: Error) => {
-        console.error("Conversation failed", err);
-        updateAgentStatus('conversation', 'error');
-        const msg = err.message || "I could not reach the brain.";
-        setStatusMessage(msg);
-        speak(msg);
-      }
-    });
 
-    await Promise.all([
-      coordinatorResult.commands ? runCommandAgent(fullText, currentContext, commands, async ({ command, args }) => {
+    // 1. Prepare Background Agents (Command and Context)
+    console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Phase 2: Launching Background Agents in parallel...");
+    const backgroundTasks: Promise<void>[] = [];
+    let commandResult: { command: string; args: (string | number)[] } | null = null;
+    let memoryResult: { content: string; diff: string } | null = null;
+
+    if (coordinatorResult.commands) {
+      console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Triggering Command Agent in background.");
+      backgroundTasks.push((async () => {
         updateAgentStatus('command', 'processing');
-        if (commands[command]) {
-          setCurrentWord(command);
-          if (soundOfCoincidenceRef.current) {
-            soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
-          }
-          const resultMsg = await commands[command].action(...args);
-          if (resultMsg) {
-            speak(resultMsg, checkRestartListening);
-          }
+        try {
+          await runCommandAgent(fullText, currentContext, commands, (match) => {
+            console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Command Agent returned a match:", match);
+            commandResult = match as { command: string; args: (string | number)[] };
+          }, (searchState) => {
+            updateAgentStatus('commandSearch', searchState);
+          });
+          updateAgentStatus('command', 'success');
+        } catch (err) {
+          updateAgentStatus('command', 'error');
+          console.error("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Command Agent failed:", err);
         }
-        updateAgentStatus('command', 'success');
-      }).catch(err => {
-        console.error("Command Agent failed", err);
-        updateAgentStatus('command', 'error');
-        setStatusMessage(err.message);
-      }) : Promise.resolve(),
-      coordinatorResult.memory ? runContextManager(fullText, currentContext).then(newCtx => {
-        updateAgentStatus('context', 'success');
-        setContextText(newCtx);
-      }).catch(err => {
-        console.error("Context Manager failed", err);
-        updateAgentStatus('context', 'error');
-        setStatusMessage(err.message);
-      }) : Promise.resolve()
-    ]);
+      })());
+    }
 
+    if (coordinatorResult.memory) {
+      console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Triggering Context Agent in background.");
+      backgroundTasks.push((async () => {
+        updateAgentStatus('context', 'processing');
+        try {
+          const res = await runContextManager(fullText, currentContext);
+          console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Context Manager returned updated memory.");
+          memoryResult = res as { content: string; diff: string };
+          setContextText(memoryResult.content);
+          updateAgentStatus('context', 'success');
+        } catch (err) {
+          updateAgentStatus('context', 'error');
+          console.error("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Context Manager failed:", err);
+        }
+      })());
+    }
+
+    // 2. Run Conversation Agent (Blocks main flow until speech starts/streams)
+    if (coordinatorResult.conversational) {
+      console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Phase 3: Triggering Conversation Agent (Blocking main flow)...");
+      updateAgentStatus('conversation', 'processing');
+      await new Promise<void>((resolve, reject) => {
+        runConversationAgent(fullText, currentContext, readmeText, {
+          onWord: (fullResponse) => {
+            setLastWordDisplay(fullResponse);
+            const hasThoughts = fullResponse.includes('<thought>') || fullResponse.includes('</thought>') || fullResponse.includes('Thinking:');
+            if (hasThoughts) {
+              setMatrixText(fullResponse);
+            } else {
+              setMatrixText('');
+            }
+          },
+          onSentence: (sentence) => speakChunk(sentence, false),
+          onComplete: (sentence) => {
+            console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Conversation Agent streaming complete.");
+            updateAgentStatus('conversation', 'success');
+            speakChunk(sentence, true, () => {
+              console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Conversation Speech finished.");
+              // This is the checkRestartListening logic handled later
+              resolve();
+            });
+          },
+          onError: (err: Error) => {
+            updateAgentStatus('conversation', 'error');
+            reject(err);
+          }
+        });
+      });
+    }
+
+    // 3. Wait for all background tasks to finish
+    console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Waiting for background tasks (Command/Context) to settle...");
+    await Promise.all(backgroundTasks);
+    console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Background tasks settled.");
+
+    // 4. Handle sequential results of background tasks after conversation
+    console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Phase 4: Enacting effects sequentially...");
+    const finalCommandResult = commandResult as { command: string; args: (string | number)[] } | null;
+    if (finalCommandResult) {
+      const { command, args } = finalCommandResult;
+      if (commands[command]) {
+        setCurrentWord(command);
+        if (soundOfCoincidenceRef.current) {
+          soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
+        }
+        
+        // Announce command
+        speak(`Command. ${command.replace(/_/g, ' ')}.`);
+        
+        const resultMsg = await commands[command].action(...args);
+        if (resultMsg) {
+          speak(resultMsg);
+        }
+      }
+    }
+
+    const finalMemoryResult = memoryResult as { content: string; diff: string } | null;
+    if (finalMemoryResult && finalMemoryResult.diff && finalMemoryResult.diff !== "No significant changes.") {
+      console.log(`[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Announcing Memory Saved: ${finalMemoryResult.diff}`);
+      speak(`Memory saved. ${finalMemoryResult.diff}`);
+    }
+
+    console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Final Synchronization: Setting conversation done and checking for listen restart.");
     isConversationDoneRef.current = true;
     checkRestartListening();
   }, [
@@ -156,6 +237,7 @@ export function useAlfredOrchestrator({
     speak,
     speakChunk,
     cancelSpeech,
+    stopListening,
     checkRestartListening,
     accumulatedTranscriptRef,
     transcriptBufferRef,

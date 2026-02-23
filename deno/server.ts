@@ -42,6 +42,11 @@ Deno.serve({ port: 8000 }, async (req) => {
         }
     } else if (path === "/api/events") {
         return commandManager.handleSSE(req);
+    } else if (path === "/api/commands" || path === "/api/commands/") {
+        const list = commandManager.getAvailableCommands();
+        return new Response(JSON.stringify({ commands: list }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     }
 
     return new Response("Not Found", { status: 404, headers: corsHeaders });
