@@ -30,7 +30,7 @@ export const runConversationAgent = async (
       - User input:
       Context: ${mdContext}
       User Query: ${prompt}
-      
+      Constraints: Respond to the user query, not making up information, and only using the context provided. If you don't know the answer, say you don't know. If the user asks you to do something, respond with a confirmation that you will do it, but do not actually perform any actions (those are handled by the Command Agent). Always be polite and address the user as "Sir". And don't mention context.
       <|assistant|>
       `;
 
