@@ -26,7 +26,7 @@ export const runConversationAgent = async (
       ---Certainly, Sir. I have updated the logs as you requested.---
 
       - User input:
-      Context: ${readmeContext} ${mdContext}
+      Context: ${mdContext}
       User Query: ${prompt}
       
       <|assistant|>
