@@ -43,10 +43,32 @@ Deno.serve({ port: 8000 }, async (req) => {
     } else if (path === "/api/events") {
         return commandManager.handleSSE(req);
     } else if (path === "/api/commands" || path === "/api/commands/") {
-        const list = commandManager.getAvailableCommands();
-        return new Response(JSON.stringify({ commands: list }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        if (req.method === "GET") {
+            const list = commandManager.getAvailableCommands();
+            return new Response(JSON.stringify({ commands: list }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+        } else if (req.method === "POST") {
+            try {
+                const body = await req.json();
+                const { pulse } = body;
+                if (pulse) {
+                    commandManager.pulse(pulse);
+                    return new Response(JSON.stringify({ success: true }), {
+                        headers: { ...corsHeaders, "Content-Type": "application/json" },
+                    });
+                }
+                return new Response(JSON.stringify({ error: "Missing pulse command" }), {
+                    status: 400,
+                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: String(e) }), {
+                    status: 500,
+                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
+            }
+        }
     }
 
     return new Response("Not Found", { status: 404, headers: corsHeaders });

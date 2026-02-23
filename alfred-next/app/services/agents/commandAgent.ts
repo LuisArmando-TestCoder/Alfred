@@ -25,30 +25,30 @@ export const runCommandAgent = async (
     updateStatus('success');
 
     const cmdPrompt = `
-      You are Alfred's Command Agent. Your job is to identify if the user's request matches any of the available system commands.
-      
-      Available System Commands (Server-side Signatures):
+      OBJECTIVE:
+      Identify if the user's request matches any of the available system commands.
+      Available Commands (Signatures):
       ${availableCommands.map((c: string) => `- ${c}`).join('\n')}
-      
-      Current System Context:
+
+      FORMAT:
+      Respond ONLY with a JSON object wrapped in triple dashes. 
+      The JSON must contain:
+      - "command": the base name of the command.
+      - "args": an array of extracted arguments.
+      - "pulse": a string representation of the command for server execution, e.g., "command(\"arg1\", 2)".
+
+      If no match is found, respond ONLY with "null".
+
+      EXAMPLE:
+      User: "play jazz"
+      Result: ---{"command": "play_music", "args": ["jazz"], "pulse": "play_music(\"jazz\")"}---
+
+      USER MESSAGE:
+      "${prompt}"
+
+      CONTEXT:
       ${context}
-
-      User Request: "${prompt}"
-
-      CRITICAL INSTRUCTIONS:
-      1. Analyze if the User Request requires any of the Available System Commands.
-      2. If a match is found, you MUST respond with the exact execution pattern: >> execute:commandName(args) >>
-      3. You MUST fill the arguments based on the function signature and the User Request.
-      4. Arguments MUST be quoted if they are strings.
-      5. If multiple arguments are needed, separate them with commas.
-      6. IF NO COMMAND MATCHES, respond ONLY with dots: .......
-      7. NEVER explain your reasoning. NEVER provide conversational text. ONLY the execution pattern or dots.
-      8. If the user refers to something in the context that implies a command (e.g., "play that music" and context says mood is "sad"), use it.
-
-      Example Match: >> execute:play_music("nice") >>
-      Example Match: >> execute:get_info("weather") >>
-      Example No Match: .......
-      `;
+    `;
 
     const res = await fetch(`${getOllamaUrl()}/api/generate`, {
       method: 'POST',
@@ -96,37 +96,40 @@ export const runCommandAgent = async (
     
     console.log("[alfred-next/app/services/agents/commandAgent.ts] Command Agent raw response:", response);
 
-    // Improved regex to handle potential whitespace and multiple matches if LLM gets chatty
-    const match = response.match(/>>\s*execute:(\w+)\s*\((.*)\)\s*>>/);
-    if (match) {
-      console.log("[alfred-next/app/services/agents/commandAgent.ts] Command pattern matched.");
-      const command = match[1];
-      const argsString = match[2];
-      
-      // Better argument parsing using regex to handle quoted strings with commas
-      const args: (string | number)[] = [];
-      const argRegex = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|([^,\s]+)/g;
-      let argMatch;
+    try {
+      const cleanResponse = response.trim();
+      if (cleanResponse.toLowerCase().includes('null')) {
+        console.log("[alfred-next/app/services/agents/commandAgent.ts] No command matched (null).");
+        return;
+      }
 
-      while ((argMatch = argRegex.exec(argsString)) !== null) {
-        const val = argMatch[1] || argMatch[2] || argMatch[3];
-        if (val !== undefined) {
-          if (!isNaN(Number(val)) && argMatch[3]) {
-            args.push(Number(val));
+      const match = cleanResponse.match(/---(.*?)---/s);
+      if (match) {
+        const parsed = JSON.parse(match[1]);
+        if (parsed && parsed.command) {
+          const { command, args, pulse } = parsed;
+          console.log(`[alfred-next/app/services/agents/commandAgent.ts] Parsed command: ${command}, args:`, args);
+
+          if (commands[command]) {
+            // Send to callback for UI/Local feedback
+            onCommandMatched({ command, args: Array.isArray(args) ? args : [] });
+            
+            // Execute on server via pulse if available
+            if (pulse) {
+              console.log("[alfred-next/app/services/agents/commandAgent.ts] Sending pulse to server:", pulse);
+              fetch(`${getBackendUrl()}/api/commands`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pulse })
+              }).catch(err => console.error("[alfred-next/app/services/agents/commandAgent.ts] Failed to send command to server", err));
+            }
           } else {
-            args.push(val);
+            console.warn(`[alfred-next/app/services/agents/commandAgent.ts] Command "${command}" not found in client commands record.`);
           }
         }
       }
-
-      console.log(`[alfred-next/app/services/agents/commandAgent.ts] Parsed command: ${command}, args:`, args);
-
-      // Verify command exists on client before calling callback
-      if (commands[command]) {
-        onCommandMatched({ command, args });
-      } else {
-        console.warn(`[alfred-next/app/services/agents/commandAgent.ts] Command "${command}" not found in client commands record.`);
-      }
+    } catch (e) {
+      console.error("[alfred-next/app/services/agents/commandAgent.ts] Failed to parse command JSON:", e, response);
     }
   } catch (err) {
     console.error("Command Agent failed", err);

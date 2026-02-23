@@ -8,7 +8,7 @@ import {
   runContextManager 
 } from '../../services/agentService';
 import { commands } from '../../services/commandService';
-import { getBackendUrl } from '../../services/agents/utils';
+import { getBackendUrl, showNotification } from '../../services/agents/utils';
 
 interface UseAlfredOrchestratorProps {
   // State
@@ -134,7 +134,7 @@ export function useAlfredOrchestrator({
             console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] Command Agent returned a match:", match);
             commandResult = match as { command: string; args: (string | number)[] };
           }, (searchState) => {
-            updateAgentStatus('commandSearch', searchState);
+            updateAgentStatus('commandSearch', mState);
           }, (t) => updateAgentTokens('command', t), (st) => updateAgentTokens('commandSearch', st));
           updateAgentStatus('command', 'success');
         } catch (err) {
@@ -211,12 +211,12 @@ export function useAlfredOrchestrator({
           soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
         }
         
-        // Announce command
-        speak(`Command. ${command.replace(/_/g, ' ')}.`);
+        // Notify command
+        showNotification("Alfred System Command", `Executing: ${command.replace(/_/g, ' ')}`);
         
         const resultMsg = await commands[command].action(...args);
         if (resultMsg) {
-          speak(resultMsg);
+          showNotification("Alfred System Result", resultMsg);
         }
       }
     }

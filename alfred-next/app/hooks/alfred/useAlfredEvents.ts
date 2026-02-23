@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAlfredStore } from '../../store/useAlfredStore';
-import { getBackendUrl } from '../../services/agents/utils';
+import { getBackendUrl, showNotification } from '../../services/agents/utils';
 import { commands } from '../../services/commandService';
 import { AgentState } from '../../types/alfred';
 
@@ -46,10 +46,11 @@ export function useAlfredEvents({
             soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
           }
           
-          speak(`Executing server command. ${command.replace(/_/g, ' ')}.`);
+          showNotification("Alfred System Command", `Executing: ${command.replace(/_/g, ' ')}`);
+          
           const resultMsg = await commands[command].action(...args);
           if (resultMsg) {
-            speak(resultMsg);
+            showNotification("Alfred System Result", resultMsg);
           }
         }
       } catch (err) {
