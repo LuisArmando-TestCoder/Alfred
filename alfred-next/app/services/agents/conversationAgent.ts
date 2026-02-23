@@ -78,7 +78,7 @@ export const runConversationAgent = async (
               const cleanFullResponse = fullResponse.replace(/<\|.*?\|>/g, '');
               callbacks.onWord(cleanFullResponse);
 
-              const parts = fullResponse.split('---');
+              const parts = fullResponse.split('.');
               if (parts.length > 1) {
                 seenAnyDashes = true;
                 let currentInsideContent = '';
