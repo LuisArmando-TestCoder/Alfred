@@ -8,6 +8,7 @@ import {
   runContextManager 
 } from '../../services/agentService';
 import { commands } from '../../services/commandService';
+import { getBackendUrl } from '../../services/agents/utils';
 
 interface UseAlfredOrchestratorProps {
   // State
@@ -112,7 +113,7 @@ export function useAlfredOrchestrator({
     updateAgentStatus('coordinator', 'success');
     console.log("[alfred-next/app/hooks/alfred/useAlfredOrchestrator.ts] onSilenceDetected() Coordinator Decision:", coordinatorResult);
 
-    const contextRes = await fetch('http://localhost:8000/api/context/raw');
+    const contextRes = await fetch(`${getBackendUrl()}/api/context/raw`);
     const contextData = await contextRes.json();
     const currentContext = contextData.content;
 

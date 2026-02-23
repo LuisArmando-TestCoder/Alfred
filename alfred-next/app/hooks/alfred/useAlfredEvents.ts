@@ -1,5 +1,8 @@
 import { useEffect } from 'react';
+import { useAlfredStore } from '../../store/useAlfredStore';
+import { getBackendUrl } from '../../services/agents/utils';
 import { commands } from '../../services/commandService';
+import { AgentState } from '../../types/alfred';
 
 interface UseAlfredEventsProps {
   speak: (text: string, onEnd?: () => void) => void;
@@ -14,53 +17,53 @@ export function useAlfredEvents({
   setCurrentWord,
   soundOfCoincidenceRef
 }: UseAlfredEventsProps) {
+  const { setContextText } = useAlfredStore();
+
   useEffect(() => {
-    const eventSource = new EventSource('http://localhost:8000/api/events');
+    console.log(`[useAlfredEvents] Connecting to SSE at ${getBackendUrl()}/api/events`);
+    const eventSource = new EventSource(`${getBackendUrl()}/api/events`);
 
     eventSource.onopen = () => {
-      console.log("EventSource connected to http://localhost:8000/api/events");
+      console.log(`[useAlfredEvents] EventSource connected to ${getBackendUrl()}/api/events`);
     };
-    
+
     eventSource.onmessage = async (event) => {
       try {
         const data = JSON.parse(event.data);
-        const { command, args } = data;
+        console.log("[useAlfredEvents] SSE Message received:", data);
         
-        console.log("Pulsed command received:", command, args);
-        
-        if (commands[command]) {
+        // Handle context updates
+        if (data.type === 'context_update') {
+          setContextText(data.content);
+        } 
+        // Handle pulsed commands (from cron or server)
+        else if (data.command && commands[data.command]) {
+          const { command, args = [] } = data;
+          console.log(`[useAlfredEvents] Executing pulsed command: ${command}(${args.join(', ')})`);
+          
           setCurrentWord(command);
           if (soundOfCoincidenceRef.current) {
             soundOfCoincidenceRef.current.play().catch(e => console.log('Audio play failed', e));
           }
+          
+          speak(`Executing server command. ${command.replace(/_/g, ' ')}.`);
           const resultMsg = await commands[command].action(...args);
           if (resultMsg) {
-            console.log(`[alfred-next/app/hooks/alfred/useAlfredEvents.ts] Command result: ${resultMsg}`);
-            
-            // Send notification instead of speaking
-            if (typeof window !== 'undefined' && 'Notification' in window) {
-              if (Notification.permission === 'granted') {
-                new Notification('Alfred', { body: resultMsg });
-              } else {
-                console.log("[alfred-next/app/hooks/alfred/useAlfredEvents.ts] Notification permission not granted.");
-              }
-            }
-            
-            // Check restart listening immediately since no speech is playing
-            checkRestartListening();
+            speak(resultMsg);
           }
         }
-      } catch (e) {
-        console.error("Error parsing pulsed command:", e);
+      } catch (err) {
+        console.error("[useAlfredEvents] Failed to parse SSE message", err);
       }
     };
 
     eventSource.onerror = (err) => {
-      console.error("EventSource failed (browser will retry):", err);
+      console.error("[useAlfredEvents] EventSource failed", err);
+      eventSource.close();
     };
 
     return () => {
       eventSource.close();
     };
-  }, [speak, checkRestartListening, setCurrentWord, soundOfCoincidenceRef]);
+  }, [setContextText, speak, checkRestartListening, setCurrentWord, soundOfCoincidenceRef]);
 }

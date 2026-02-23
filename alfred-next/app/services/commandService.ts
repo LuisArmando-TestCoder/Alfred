@@ -1,8 +1,9 @@
 import { CommandsRecord } from "../types/alfred";
+import { getBackendUrl } from "./agents/utils";
 
 export const fetchCommand = async (endpoint: string) => {
   try {
-    const res = await fetch(`http://localhost:8000/${endpoint}`);
+    const res = await fetch(`${getBackendUrl()}/${endpoint}`);
     if (!res.ok) throw new Error('Server error');
     const data = await res.json();
     

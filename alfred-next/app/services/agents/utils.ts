@@ -6,6 +6,10 @@ export const getOllamaUrl = () => {
   return url;
 };
 
+export const getBackendUrl = () => {
+  return process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+};
+
 export const formatMetricPrefix = (num: number): string => {
   if (num < 1000) return num.toString();
   const suffixes = ['', 'k', 'M', 'G', 'T', 'P', 'E'];

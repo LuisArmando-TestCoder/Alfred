@@ -1,5 +1,5 @@
 import { CommandsRecord, AgentState } from "../../types/alfred";
-import { getOllamaUrl } from "./utils";
+import { getOllamaUrl, getBackendUrl } from "./utils";
 
 export const runCommandAgent = async (
   prompt: string, 
@@ -16,7 +16,7 @@ export const runCommandAgent = async (
     console.log("[alfred-next/app/services/agents/commandAgent.ts] runCommandAgent() Phase: Command Search.");
     updateStatus('processing');
     
-    const searchRes = await fetch('http://localhost:8000/api/commands');
+    const searchRes = await fetch(`${getBackendUrl()}/api/commands`);
     const searchData = await searchRes.json();
     const availableCommands = searchData.commands || [];
     console.log("[alfred-next/app/services/agents/commandAgent.ts] Found available commands from server:", availableCommands);
@@ -25,19 +25,29 @@ export const runCommandAgent = async (
     updateStatus('success');
 
     const cmdPrompt = `
-      You are a Command Agent. Analyze the message and context to decide if a command should be executed.
+      You are Alfred's Command Agent. Your job is to identify if the user's request matches any of the available system commands.
       
-      CRITICAL RULES:
-      1. IF MATCH: Output EXACTLY >> execute:commandName("arg1", "arg2", ...) >>
-      2. IF NO MATCH: Output ONLY dots .......
-      3. NEVER EXPLAIN YOURSELF. DO NOT OUTPUT ANY OTHER TEXT.
-      4. Arguments MUST be quoted if strings.
-      
-      Available Commands:
+      Available System Commands (Server-side Signatures):
       ${availableCommands.map((c: string) => `- ${c}`).join('\n')}
       
-      Context: ${context}
-      User: "${prompt}"
+      Current System Context:
+      ${context}
+
+      User Request: "${prompt}"
+
+      CRITICAL INSTRUCTIONS:
+      1. Analyze if the User Request requires any of the Available System Commands.
+      2. If a match is found, you MUST respond with the exact execution pattern: >> execute:commandName(args) >>
+      3. You MUST fill the arguments based on the function signature and the User Request.
+      4. Arguments MUST be quoted if they are strings.
+      5. If multiple arguments are needed, separate them with commas.
+      6. IF NO COMMAND MATCHES, respond ONLY with dots: .......
+      7. NEVER explain your reasoning. NEVER provide conversational text. ONLY the execution pattern or dots.
+      8. If the user refers to something in the context that implies a command (e.g., "play that music" and context says mood is "sad"), use it.
+
+      Example Match: >> execute:play_music("nice") >>
+      Example Match: >> execute:get_info("weather") >>
+      Example No Match: .......
       `;
 
     const res = await fetch(`${getOllamaUrl()}/api/generate`, {
@@ -86,24 +96,37 @@ export const runCommandAgent = async (
     
     console.log("[alfred-next/app/services/agents/commandAgent.ts] Command Agent raw response:", response);
 
-    const match = response.match(/>>\s*execute:(\w+)\((.*)\)\s*>>/);
+    // Improved regex to handle potential whitespace and multiple matches if LLM gets chatty
+    const match = response.match(/>>\s*execute:(\w+)\s*\((.*)\)\s*>>/);
     if (match) {
       console.log("[alfred-next/app/services/agents/commandAgent.ts] Command pattern matched.");
       const command = match[1];
       const argsString = match[2];
       
-      // Basic argument parsing (splitting by comma and removing quotes)
-      const args: (string | number)[] = argsString.split(',')
-        .map((arg: string) => arg.trim())
-        .filter((arg: string) => arg.length > 0)
-        .map((arg: string) => {
-          if (arg.startsWith('"') && arg.endsWith('"')) return arg.slice(1, -1);
-          if (arg.startsWith("'") && arg.endsWith("'")) return arg.slice(1, -1);
-          if (!isNaN(Number(arg))) return Number(arg);
-          return arg;
-        });
+      // Better argument parsing using regex to handle quoted strings with commas
+      const args: (string | number)[] = [];
+      const argRegex = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|([^,\s]+)/g;
+      let argMatch;
 
-      onCommandMatched({ command, args });
+      while ((argMatch = argRegex.exec(argsString)) !== null) {
+        const val = argMatch[1] || argMatch[2] || argMatch[3];
+        if (val !== undefined) {
+          if (!isNaN(Number(val)) && argMatch[3]) {
+            args.push(Number(val));
+          } else {
+            args.push(val);
+          }
+        }
+      }
+
+      console.log(`[alfred-next/app/services/agents/commandAgent.ts] Parsed command: ${command}, args:`, args);
+
+      // Verify command exists on client before calling callback
+      if (commands[command]) {
+        onCommandMatched({ command, args });
+      } else {
+        console.warn(`[alfred-next/app/services/agents/commandAgent.ts] Command "${command}" not found in client commands record.`);
+      }
     }
   } catch (err) {
     console.error("Command Agent failed", err);

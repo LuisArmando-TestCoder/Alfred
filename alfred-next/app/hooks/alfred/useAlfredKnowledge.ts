@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAlfredStore } from '../../store/useAlfredStore';
+import { getBackendUrl } from '../../services/agents/utils';
 
 export function useAlfredKnowledge() {
   const { setContextText } = useAlfredStore();
@@ -8,7 +9,7 @@ export function useAlfredKnowledge() {
   useEffect(() => {
     const fetchContext = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/context/raw');
+        const res = await fetch(`${getBackendUrl()}/api/context/raw`);
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
         const data = await res.json();
         setContextText(data.content);
@@ -19,7 +20,7 @@ export function useAlfredKnowledge() {
 
     const fetchReadme = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/readme');
+        const res = await fetch(`${getBackendUrl()}/api/readme`);
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
         const data = await res.json();
         setReadmeText(data.content);
