@@ -16,6 +16,22 @@ export const runContextManager = async (prompt: string, currentContext: string) 
         
         Current Context:
         ${currentContext}
+
+        Example of Context Update:
+        If the user says "Remember that I have a meeting at 3pm", you might update the context with:
+        meetingAt:3pm
+
+        If the user says "I am feeling sad", you might update the context with:
+        emotionalState:sad
+
+        If the user says "I like Italian food", you might update the context with:
+        foodPreference:italian
+
+        everything in the context should be in this format. Always return the FULL context with updates, never just the new pieces.
+        and it would end up looking like:
+        meetingAt:3pm
+        emotionalState:sad
+        foodPreference:italian
         
         User said: "${prompt}"
         `;

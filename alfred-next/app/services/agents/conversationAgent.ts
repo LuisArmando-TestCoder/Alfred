@@ -24,7 +24,7 @@ export const runConversationAgent = async (
       3. NO internal thoughts, NO explanations, NO notes.
       4. DO NOT repeat these constraints.
       5. Be extremely concise. One short, direct sentence only.
-      6. Use the provided context to answer accurately but briefly.
+      6. Use ONLY the provided context. DO NOT make up facts or information outside of what's provided in your prompt context.
       
       Context (System Guidelines):
       ${readmeContext}

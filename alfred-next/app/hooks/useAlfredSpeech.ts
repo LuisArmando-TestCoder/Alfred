@@ -28,30 +28,30 @@ export function useAlfredSpeech({
   const accumulatedTranscriptRef = useRef('');
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const isSpeechDoneRef = useRef(true);
-  const utterancesRef = useRef<Set<SpeechSynthesisUtterance>>(new Set());
+  
+  // Speech Queue logic
+  const speechQueueRef = useRef<{ text: string; onEnd?: () => void }[]>([]);
+  const isQueueProcessingRef = useRef(false);
 
-  const speak = useCallback((text: string, onEnd?: () => void) => {
-    console.log(`[alfred-next/app/hooks/useAlfredSpeech.ts] speak() requested: "${text?.substring(0, 30)}..."`);
+  const processQueue = useCallback(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    if (!text || text.trim() === '') {
-      console.warn("[alfred-next/app/hooks/useAlfredSpeech.ts] speak() aborted: empty text.");
-      if (onEnd) onEnd();
+    if (isQueueProcessingRef.current || speechQueueRef.current.length === 0) {
+      if (speechQueueRef.current.length === 0 && !window.speechSynthesis.speaking) {
+        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] Queue empty and silent. Setting isSpeechDone=true");
+        isSpeechDoneRef.current = true;
+        if (onSpeechEnd) onSpeechEnd();
+      }
       return;
     }
-    
-    if (processingStateRef.current !== 'speaking') {
-      onProcessingStateChange('speaking');
-    }
-    
-    if (isRecognitionRunningRef.current) {
-        if (recognitionRef.current) {
-            try { recognitionRef.current.stop(); } catch { /* ignore */ }
-        }
-    }
 
+    isQueueProcessingRef.current = true;
+    isSpeechDoneRef.current = false;
+    const { text, onEnd } = speechQueueRef.current.shift()!;
+    
+    console.log(`[alfred-next/app/hooks/useAlfredSpeech.ts] processQueue() Speaking: "${text.substring(0, 30)}..."`);
+    
     const utterance = new SpeechSynthesisUtterance(text);
-    utterancesRef.current.add(utterance);
-
+    
     let voices = voicesRef.current;
     if (voices.length === 0) {
       voices = window.speechSynthesis.getVoices();
@@ -61,80 +61,57 @@ export function useAlfredSpeech({
     if (voice) utterance.voice = voice;
     utterance.rate = 0.9;
     utterance.pitch = 0.8;
-    isSpeechDoneRef.current = false;
+
     utterance.onend = () => {
-      console.log(`[alfred-next/app/hooks/useAlfredSpeech.ts] speak() utterance ended: "${text.substring(0, 20)}..."`);
-      utterancesRef.current.delete(utterance);
-      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] All speech done.");
-        isSpeechDoneRef.current = true;
-        if (onEnd) onEnd();
-        if (onSpeechEnd) onSpeechEnd();
-      } else {
-        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] Still speaking other utterances.");
-      }
+      console.log(`[alfred-next/app/hooks/useAlfredSpeech.ts] Utterance finished.`);
+      if (onEnd) onEnd();
+      isQueueProcessingRef.current = false;
+      processQueue();
     };
+
     utterance.onerror = (e: any) => {
-      console.error("[alfred-next/app/hooks/useAlfredSpeech.ts] speak() utterance error event:", e);
-      console.error("[alfred-next/app/hooks/useAlfredSpeech.ts] speak() utterance error code:", e.error);
-      utterancesRef.current.delete(utterance);
-      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-        console.log("[alfred-next/app/hooks/useAlfredSpeech.ts] speech error recovery: setting isSpeechDone=true");
-        isSpeechDoneRef.current = true;
-        if (onSpeechEnd) onSpeechEnd();
-      }
+      console.error("[alfred-next/app/hooks/useAlfredSpeech.ts] Utterance error:", e.error);
+      if (onEnd) onEnd();
+      isQueueProcessingRef.current = false;
+      processQueue();
     };
+
     window.speechSynthesis.speak(utterance);
-  }, [onProcessingStateChange, processingStateRef, onSpeechEnd]);
+  }, [onSpeechEnd]);
 
-  const speakChunk = useCallback((text: string, isFinal: boolean = false, onEnd?: () => void) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    if (!text && !isFinal) return;
-
+  const addToSpeechQueue = useCallback((text: string, onEnd?: () => void) => {
+    if (!text || text.trim() === '') {
+      if (onEnd) onEnd();
+      return;
+    }
+    console.log(`[alfred-next/app/hooks/useAlfredSpeech.ts] Adding to queue: "${text.substring(0, 30)}..."`);
+    speechQueueRef.current.push({ text, onEnd });
+    
     if (processingStateRef.current !== 'speaking') {
       onProcessingStateChange('speaking');
     }
-    isSpeechDoneRef.current = false;
     
     if (isRecognitionRunningRef.current) {
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch { /* ignore */ }
       }
     }
-
-    const textToSpeak = text || " ";
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterancesRef.current.add(utterance);
-
-    let voices = voicesRef.current;
-    if (voices.length === 0) {
-      voices = window.speechSynthesis.getVoices();
-      voicesRef.current = voices;
-    }
-    const voice = voices.find(v => v.name === 'Google UK English Male') || voices[0];
-    if (voice) utterance.voice = voice;
-    utterance.rate = 0.9;
-    utterance.pitch = 0.8;
-
-    utterance.onend = () => {
-      utterancesRef.current.delete(utterance);
-      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-        isSpeechDoneRef.current = true;
-        if (onEnd) onEnd();
-        if (onSpeechEnd) onSpeechEnd();
-      }
-    };
-
-    utterance.onerror = () => {
-      utterancesRef.current.delete(utterance);
-      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-        isSpeechDoneRef.current = true;
-        if (onSpeechEnd) onSpeechEnd();
-      }
-    };
     
-    window.speechSynthesis.speak(utterance);
-  }, [onProcessingStateChange, processingStateRef, onSpeechEnd]);
+    processQueue();
+  }, [onProcessingStateChange, processingStateRef, processQueue]);
+
+  const speak = useCallback((text: string, onEnd?: () => void) => {
+    addToSpeechQueue(text, onEnd);
+  }, [addToSpeechQueue]);
+
+  const speakChunk = useCallback((text: string, isFinal: boolean = false, onEnd?: () => void) => {
+    // For chunks, if it's final we definitely want to queue it.
+    // If it's not final, we might want to aggregate? 
+    // Actually, onSentence already gives us full sentences.
+    if (text || isFinal) {
+      addToSpeechQueue(text || " ", onEnd);
+    }
+  }, [addToSpeechQueue]);
 
   const startListening = useCallback((silent: boolean = false, preserveTranscript: boolean = false) => {
     console.log(`[alfred-next/app/hooks/useAlfredSpeech.ts] startListening(silent=${silent}, preserve=${preserveTranscript}) called.`);
@@ -188,7 +165,9 @@ export function useAlfredSpeech({
   const cancelSpeech = useCallback(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      utterancesRef.current.clear();
+      speechQueueRef.current = [];
+      isQueueProcessingRef.current = false;
+      isSpeechDoneRef.current = true;
     }
   }, []);
 

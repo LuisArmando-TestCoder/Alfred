@@ -14,6 +14,14 @@ export function useAlfredLifecycle({
   useEffect(() => {
     soundOfCoincidenceRef.current = new Audio('/mp3/coincidence.mp3');
     setIsReady(true);
+
+    // Request Notification Permission
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+    }
+
     return () => {
       stopListening();
     };

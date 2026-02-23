@@ -35,7 +35,19 @@ export function useAlfredEvents({
           }
           const resultMsg = await commands[command].action(...args);
           if (resultMsg) {
-            speak(resultMsg, checkRestartListening);
+            console.log(`[alfred-next/app/hooks/alfred/useAlfredEvents.ts] Command result: ${resultMsg}`);
+            
+            // Send notification instead of speaking
+            if (typeof window !== 'undefined' && 'Notification' in window) {
+              if (Notification.permission === 'granted') {
+                new Notification('Alfred', { body: resultMsg });
+              } else {
+                console.log("[alfred-next/app/hooks/alfred/useAlfredEvents.ts] Notification permission not granted.");
+              }
+            }
+            
+            // Check restart listening immediately since no speech is playing
+            checkRestartListening();
           }
         }
       } catch (e) {

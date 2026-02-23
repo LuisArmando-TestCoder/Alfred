@@ -35,6 +35,13 @@ export interface AlfredCoreState {
     command: AgentState;
     context: AgentState;
   };
+  agentTokens: {
+    coordinator: number;
+    commandSearch: number;
+    conversation: number;
+    command: number;
+    context: number;
+  };
   lastWordDisplay: string;
   currentWord: string;
 }
@@ -44,6 +51,7 @@ export type AlfredCoreAction =
   | { type: 'SET_PROCESSING_STATE'; payload: ProcessingState }
   | { type: 'SET_STATUS_MESSAGE'; payload: string }
   | { type: 'SET_AGENT_STATUS'; payload: Partial<AlfredCoreState['agentStatus']> }
+  | { type: 'SET_AGENT_TOKENS'; payload: Partial<AlfredCoreState['agentTokens']> }
   | { type: 'RESET_AGENT_STATUS' }
   | { type: 'SET_LAST_WORD_DISPLAY'; payload: string }
   | { type: 'SET_CURRENT_WORD'; payload: string };
